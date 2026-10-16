@@ -92,6 +92,29 @@ npm run preview
 
 Node ≥ 22.22 (see `.nvmrc`).
 
+## Verification (before handover)
+
+Checked on a fresh clone of this branch: `npm ci` → `npm run build` → `npm run check:links`
+(Node 22.22.0, Astro 7.3.8). The clean build was byte-identical to the tested build. It was served
+by a local static server that mimics Netlify: brotli compression, the cookie-based `/` redirect,
+`404.html`, and `404` for form POSTs while form detection is off.
+
+| Check | Result |
+| --- | --- |
+| End-to-end (Playwright) | All pass: 12 colour swatches + "Other" for both products; configuration carried into the form; validation; honest fallback when not delivered; Netlify payload/success only on HTTP 200; language switch keeps section, colour, form draft and hero position; `/` redirect; reduced motion; keyboard; 404; mobile menu |
+| Accessibility (axe-core 4.10) | 0 violations — hy & en at 1280 px, hy at 390 px |
+| Lighthouse 12.8 mobile (Moto G Power emulation, simulated slow 4G: 150 ms RTT, 1.6 Mbps; 4× CPU) | hy: 98 · LCP 2.3 s · CLS 0 · TBT 0 ms — en: 100 · LCP 1.8 s · CLS 0 · TBT 0 ms |
+| Lighthouse 12.8 desktop | hy & en: 100 · LCP 0.4 s · CLS ≤ 0.001 · TBT 0 ms |
+| Lighthouse a11y / best practices / SEO | 100 / 100 / 100 (all four runs) |
+| Interaction latency (Event Timing, same data as INP) | worst 96 ms on mobile with 4× CPU slowdown; 64 ms mobile; 40 ms desktop |
+| Hero scrubbing (forward + back) | desktop 1440×900: 59.9 fps, p95 16.8 ms · mobile 390×844 @3×: 59.7 fps, p95 16.8 ms · mobile with 4× CPU slowdown: 40 fps, p95 33 ms |
+| Layout | no horizontal overflow at 24 widths from 320 to 1600 px (hy & en); also checked at 1920 and 2560 |
+
+Conditions: headless Chromium 141 on Linux, software rendering (no GPU). Real phones with GPU
+compositing typically scroll the canvas more smoothly than this.
+**Not tested:** Safari/iOS (WebKit), Firefox and physical devices. These weren't available in the build
+environment, so check them on a phone after the first deploy.
+
 ## Content notes
 
 - Only facts published by the business (Instagram) or supplied by the client are used; see
