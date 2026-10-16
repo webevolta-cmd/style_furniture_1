@@ -110,7 +110,6 @@ const tiers = JSON.stringify(heroManifest.tiers);
 
 <style>
   .hero {
-    --p: 0;
     --intro: 1;
     --final: 0;
     --chrome: 0;
@@ -128,7 +127,10 @@ const tiers = JSON.stringify(heroManifest.tiers);
     top: 0;
     height: 100vh;
     height: 100svh;
+    /* clip, not hidden: clipping without creating a scroll container keeps touch/wheel
+       scrolling latched to the page */
     overflow: hidden;
+    overflow: clip;
     isolation: isolate;
   }
   .hero__poster,

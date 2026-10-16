@@ -412,13 +412,24 @@ export function initHero() {
   };
   window.addEventListener('scroll', onScroll, { passive: true });
 
+  // The hero's height follows the viewport, so after a rotation or window resize the same scrollY
+  // would land on a different assembly state. Remember where the visitor was and return there.
+  // Mobile URL-bar changes don't alter the layout (svh units), so they never move the page.
   let resizeTimer = 0;
+  let anchor: { progress: number; top: number; travel: number } | null = null;
   const onResize = () => {
+    if (started && !anchor) anchor = { progress, top, travel };
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       if (!started) return;
       setSource();
       measure();
+      const a = anchor;
+      anchor = null;
+      const changed = a && (Math.abs(top - a.top) > 1 || Math.abs(travel - a.travel) > 1);
+      if (a && changed && a.progress > 0 && a.progress < 1) {
+        window.scrollTo({ top: Math.round(top + a.progress * travel), behavior: 'instant' as ScrollBehavior });
+      }
       request();
     }, 120);
   };
