@@ -1,0 +1,98 @@
+---
+import '../styles/global.css';
+import { business } from '../data/business';
+import { t, langs, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  /** path below the language prefix, e.g. '' for the home page */
+  path?: string;
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const { lang, path = '', title, description, noindex = false } = Astro.props;
+const d = t(lang);
+const site = Astro.site!;
+const url = (l: Lang) => new URL(`/${l}/${path}`, site).href;
+const pageTitle = title ?? d.meta.title;
+const pageDesc = description ?? d.meta.description;
+const ogImage = new URL('/media/og-image.jpg', site).href;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HomeAndConstructionBusiness',
+  '@id': new URL('/#business', site).href,
+  name: business.name,
+  description: pageDesc,
+  url: url(lang),
+  image: ogImage,
+  logo: new URL('/icon-512.png', site).href,
+  telephone: business.phone.e164,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: business.addressLocality,
+    addressCountry: business.addressCountry,
+  },
+  areaServed: { '@type': 'City', name: business.addressLocality },
+  sameAs: [business.instagram.url],
+  makesOffer: [d.free.consultation, d.free.measurement, d.free.installation].map((name) => ({
+    '@type': 'Offer',
+    price: 0,
+    priceCurrency: 'AMD',
+    itemOffered: { '@type': 'Service', name },
+  })),
+};
+
+const fontPreloads =
+  lang === 'hy'
+    ? ['/fonts/noto-sans-armenian-wght.woff2', '/fonts/noto-serif-armenian-wght.woff2']
+    : ['/fonts/manrope-latin-wght.woff2', '/fonts/cormorant-garamond-latin-wght.woff2'];
+---
+
+<!doctype html>
+<html lang={lang} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDesc} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={url(lang)} />
+    {langs.map((l) => <link rel="alternate" hreflang={l} href={url(l)} />)}
+    <link rel="alternate" hreflang="x-default" href={url('hy')} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={business.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDesc} />
+    <meta property="og:url" content={url(lang)} />
+    <meta property="og:locale" content={d.meta.locale} />
+    <meta property="og:locale:alternate" content={t(lang === 'hy' ? 'en' : 'hy').meta.locale} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={d.meta.ogAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDesc} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <meta name="theme-color" content="#fbf8f3" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    {fontPreloads.map((href) => <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />)}
+    <slot name="head" />
+
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{d.a11y.skip}</a>
+    <slot />
+  </body>
+</html>

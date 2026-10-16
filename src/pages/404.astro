@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import Logo from '../components/Logo.astro';
+import { t } from '../i18n';
+const hy = t('hy');
+const en = t('en');
+---
+
+<!doctype html>
+<html lang="hy">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 · {hy.notFound.title} · Style Furniture</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="nf">
+      <a href="/hy/" aria-label={hy.a11y.home}><Logo /></a>
+      <p class="nf__code">404</p>
+      <div class="nf__cols">
+        <section lang="hy">
+          <h1>{hy.notFound.title}</h1>
+          <p>{hy.notFound.text}</p>
+          <a class="btn" href="/hy/">{hy.notFound.home}</a>
+        </section>
+        <section lang="en">
+          <h2>{en.notFound.title}</h2>
+          <p>{en.notFound.text}</p>
+          <a class="btn btn--ghost" href="/en/">{en.notFound.home}</a>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+  .nf {
+    min-height: 100svh;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+  .nf__code {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 6rem;
+    line-height: 1;
+    color: var(--gold-deep);
+  }
+  .nf__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 18rem));
+    gap: 2.5rem;
+  }
+  .nf__cols section {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: center;
+  }
+  .nf__cols h1,
+  .nf__cols h2 {
+    font-size: 2rem;
+  }
+  @media (max-width: 600px) {
+    .nf__cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,162 @@
+---
+import Picture from './Picture.astro';
+import Icon from './Icon.astro';
+import { categories } from '../data/furniture';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+
+<section class="section furniture" id="furniture" aria-labelledby="furniture-title">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">{d.furniture.eyebrow}</p>
+      <h2 id="furniture-title">{d.furniture.title}</h2>
+      <p>{d.furniture.lead}</p>
+    </div>
+
+    <ul class="furniture__grid">
+      {
+        categories.map((c, i) => {
+          const copy = d.furniture.categories[c.key];
+          return (
+            <li class="card reveal" style={`--delay:${(i % 3) * 0.07}s`}>
+              <div class="media card__media">
+                <Picture
+                  name={c.image as 'cat-bed'}
+                  alt={copy.alt}
+                  sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
+                />
+                {c.visualization && <span class="badge badge--soft card__badge">{d.furniture.visualization}</span>}
+              </div>
+              <div class="card__body">
+                <h3>{copy.title}</h3>
+                <p>{copy.text}</p>
+                <a class="link-arrow" href="#request" data-furniture={c.formValue} data-request="quote">
+                  {d.furniture.request}
+                  <span class="visually-hidden">: {copy.title}</span>
+                  <Icon name="arrow" />
+                </a>
+              </div>
+            </li>
+          );
+        })
+      }
+    </ul>
+
+    <div class="custom reveal">
+      <div class="custom__icon"><Icon name="sparkle" /></div>
+      <div class="custom__text">
+        <h3>{d.furniture.custom.title}</h3>
+        <p>{d.furniture.custom.text}</p>
+        <p class="custom__note">{d.furniture.note}</p>
+      </div>
+      <a class="btn btn--gold" href="#request" data-request="custom">
+        {d.furniture.custom.cta}
+        <Icon name="arrow" />
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .furniture__grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2.4vw, 2rem);
+  }
+  .card {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+  }
+  .card__media {
+    aspect-ratio: 4 / 5;
+  }
+  .card__media :global(img) {
+    transition: transform 1.2s var(--ease-out);
+  }
+  .card:hover .card__media :global(img) {
+    transform: scale(1.035);
+  }
+  .card__badge {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+  }
+  .card__body {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: start;
+  }
+  .card__body h3 {
+    font-size: var(--step-2);
+  }
+  .card__body p {
+    color: var(--ink-2);
+  }
+  .card__body .link-arrow {
+    margin-top: 0.35rem;
+    min-height: 32px;
+  }
+  .custom {
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: clamp(1rem, 3vw, 2.5rem);
+    align-items: center;
+    padding: clamp(1.5rem, 3.5vw, 2.75rem);
+    border-radius: var(--radius-l);
+    background: var(--night);
+    color: var(--on-night);
+  }
+  .custom__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid rgba(216, 183, 125, 0.5);
+    color: var(--gold-light);
+  }
+  .custom__icon :global(svg) {
+    width: 28px;
+    height: 28px;
+  }
+  .custom__text {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .custom__text h3 {
+    font-size: var(--step-3);
+  }
+  .custom__text p {
+    color: var(--on-night-2);
+  }
+  .custom__note {
+    font-size: 0.9rem;
+  }
+  @media (max-width: 1024px) {
+    .furniture__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 640px) {
+    .furniture__grid {
+      grid-template-columns: 1fr;
+    }
+    .card__media {
+      aspect-ratio: 4 / 4.4;
+    }
+    .custom {
+      grid-template-columns: 1fr;
+    }
+    .custom .btn {
+      width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,104 @@
+---
+import Picture from './Picture.astro';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+
+<section class="section section--sand about" id="about" aria-labelledby="about-title">
+  <div class="container about__grid">
+    <div class="about__media reveal">
+      <div class="media about__frame">
+        <Picture name="about" alt={d.about.imageAlt} sizes="(max-width: 860px) 92vw, 46vw" />
+      </div>
+    </div>
+    <div class="about__copy">
+      <p class="eyebrow reveal">{d.about.eyebrow}</p>
+      <h2 id="about-title" class="reveal">{d.about.title}</h2>
+      <p class="about__lead reveal">{d.about.p1}</p>
+      <p class="reveal">{d.about.p2}</p>
+      <ul class="about__pillars">
+        {
+          d.about.pillars.map((p, i) => (
+            <li class="reveal" style={`--delay:${i * 0.08}s`}>
+              <span class="about__num">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{p.title}</h3>
+                <p>{p.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: clamp(2rem, 5vw, 5.5rem);
+    align-items: center;
+  }
+  .about__frame {
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-l);
+  }
+  .about__copy {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .about__copy h2 {
+    font-size: var(--step-4);
+  }
+  .about__copy > p {
+    color: var(--ink-2);
+  }
+  .about__lead {
+    font-size: var(--step-1);
+    color: var(--ink) !important;
+  }
+  .about__pillars {
+    list-style: none;
+    display: grid;
+    gap: 0;
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--line);
+  }
+  .about__pillars li {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .about__num {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.5rem;
+    color: var(--gold-deep);
+    line-height: 1.2;
+  }
+  .about__pillars h3 {
+    font-family: var(--font-body);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.35;
+  }
+  .about__pillars p {
+    color: var(--ink-2);
+    margin-top: 0.15rem;
+  }
+  @media (max-width: 860px) {
+    .about__grid {
+      grid-template-columns: 1fr;
+    }
+    .about__frame {
+      aspect-ratio: 4 / 4.2;
+    }
+  }
+</style>

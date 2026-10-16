@@ -1,0 +1,103 @@
+---
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+
+<section class="section section--night process" id="process" aria-labelledby="process-title">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">{d.process.eyebrow}</p>
+      <h2 id="process-title">{d.process.title}</h2>
+    </div>
+    <ol class="process__list">
+      {
+        d.process.steps.map((s, i) => (
+          <li class="process__step reveal" style={`--delay:${i * 0.07}s`}>
+            <span class="process__num">{String(i + 1).padStart(2, '0')}</span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+            {s.free && <span class="badge badge--gold">{d.process.free}</span>}
+          </li>
+        ))
+      }
+    </ol>
+    <p class="process__note reveal">{d.process.note}</p>
+  </div>
+</section>
+
+<style>
+  .process__list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    border-top: 1px solid rgba(243, 236, 226, 0.16);
+  }
+  .process__step {
+    position: relative;
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 0.7rem;
+    padding: 1.6rem 1.4rem 1.8rem 0;
+  }
+  .process__step + .process__step {
+    padding-left: 1.4rem;
+    border-left: 1px solid rgba(243, 236, 226, 0.16);
+  }
+  .process__step::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold-light);
+  }
+  .process__step + .process__step::before {
+    left: 1.4rem;
+  }
+  .process__num {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--gold-light);
+  }
+  .process__step h3 {
+    font-size: clamp(1.15rem, 1rem + 0.5vw, 1.45rem);
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  .process__step p {
+    color: var(--on-night-2);
+    font-size: 0.95rem;
+  }
+  .process__note {
+    margin-top: var(--space-5);
+    color: var(--on-night-2);
+    font-size: 0.95rem;
+  }
+  @media (max-width: 1024px) {
+    .process__list {
+      grid-template-columns: 1fr;
+      border-top: 0;
+      border-left: 1px solid rgba(243, 236, 226, 0.16);
+      margin-left: 0.35rem;
+    }
+    .process__step,
+    .process__step + .process__step {
+      padding: 0 0 2rem 1.6rem;
+      border-left: 0;
+    }
+    .process__step::before,
+    .process__step + .process__step::before {
+      top: 0.9rem;
+      left: -4px;
+    }
+  }
+</style>

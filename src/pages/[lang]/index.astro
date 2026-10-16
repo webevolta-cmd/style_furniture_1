@@ -1,0 +1,70 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Hero from '../../components/Hero.astro';
+import Services from '../../components/Services.astro';
+import About from '../../components/About.astro';
+import Furniture from '../../components/Furniture.astro';
+import Configurator from '../../components/Configurator.astro';
+import Process from '../../components/Process.astro';
+import Craft from '../../components/Craft.astro';
+import Projects from '../../components/Projects.astro';
+import Inquiry from '../../components/Inquiry.astro';
+import Contact from '../../components/Contact.astro';
+import Footer from '../../components/Footer.astro';
+import { langs, type Lang } from '../../i18n';
+
+export function getStaticPaths() {
+  return langs.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const preload = (orient: 'desktop' | 'mobile', media: string) => {
+  const widths = orient === 'desktop' ? [960, 1600, 1920] : [540, 720, 1080];
+  return {
+    href: `/media/hero/${orient}-start-${widths[1]}.avif`,
+    imagesrcset: widths.map((w) => `/media/hero/${orient}-start-${w}.avif ${w}w`).join(', '),
+    media,
+  };
+};
+const heroPreloads = [
+  preload('desktop', '(orientation: landscape) and (prefers-reduced-motion: no-preference)'),
+  preload('mobile', '(orientation: portrait) and (prefers-reduced-motion: no-preference)'),
+];
+---
+
+<Base lang={lang}>
+  <Fragment slot="head">
+    {
+      heroPreloads.map((p) => (
+        <link rel="preload" as="image" type="image/avif" href={p.href} imagesrcset={p.imagesrcset} imagesizes="100vw" media={p.media} fetchpriority="high" />
+      ))
+    }
+  </Fragment>
+  <Header lang={lang} />
+  <main id="main" tabindex="-1">
+    <Hero lang={lang} />
+    <Services lang={lang} />
+    <About lang={lang} />
+    <Furniture lang={lang} />
+    <Configurator lang={lang} />
+    <Process lang={lang} />
+    <Craft lang={lang} />
+    <Projects lang={lang} />
+    <Inquiry lang={lang} />
+    <Contact lang={lang} />
+  </main>
+  <Footer lang={lang} />
+</Base>
+
+<script>
+  import { initHero } from '../../scripts/hero';
+  import { initSite } from '../../scripts/site';
+  import { initConfigurator } from '../../scripts/configurator';
+  import { initInquiry } from '../../scripts/inquiry';
+
+  initHero();
+  initSite();
+  initConfigurator();
+  initInquiry();
+</script>

@@ -1,0 +1,139 @@
+{
+  "cat-bed": {
+    "width": 1100,
+    "height": 1375,
+    "widths": [
+      480,
+      800,
+      1100
+    ]
+  },
+  "cat-sofa": {
+    "width": 1100,
+    "height": 1376,
+    "widths": [
+      480,
+      800,
+      1100
+    ]
+  },
+  "cat-armchair": {
+    "width": 1100,
+    "height": 1375,
+    "widths": [
+      480,
+      800,
+      1100
+    ]
+  },
+  "cat-kitchen": {
+    "width": 800,
+    "height": 1000,
+    "widths": [
+      480,
+      800
+    ]
+  },
+  "cat-wardrobe": {
+    "width": 800,
+    "height": 1000,
+    "widths": [
+      480,
+      800
+    ]
+  },
+  "cat-other": {
+    "width": 1100,
+    "height": 1376,
+    "widths": [
+      480,
+      800,
+      1100
+    ]
+  },
+  "proj-kitchen": {
+    "width": 1536,
+    "height": 1024,
+    "widths": [
+      640,
+      1000,
+      1536
+    ]
+  },
+  "proj-clinic": {
+    "width": 1200,
+    "height": 1599,
+    "widths": [
+      480,
+      800,
+      1200
+    ]
+  },
+  "proj-living": {
+    "width": 1200,
+    "height": 1500,
+    "widths": [
+      480,
+      800,
+      1200
+    ]
+  },
+  "proj-bedframe": {
+    "width": 1080,
+    "height": 788,
+    "widths": [
+      480,
+      800,
+      1080
+    ]
+  },
+  "proj-bedroom": {
+    "width": 1200,
+    "height": 1599,
+    "widths": [
+      480,
+      800,
+      1200
+    ]
+  },
+  "about": {
+    "width": 1300,
+    "height": 1624,
+    "widths": [
+      560,
+      900,
+      1300
+    ]
+  },
+  "craft-fabric": {
+    "width": 640,
+    "height": 642,
+    "widths": [
+      400,
+      640
+    ]
+  },
+  "craft-fronts": {
+    "width": 400,
+    "height": 401,
+    "widths": [
+      400
+    ]
+  },
+  "craft-forms": {
+    "width": 700,
+    "height": 699,
+    "widths": [
+      400,
+      700
+    ]
+  },
+  "craft-modules": {
+    "width": 700,
+    "height": 699,
+    "widths": [
+      400,
+      700
+    ]
+  }
+}

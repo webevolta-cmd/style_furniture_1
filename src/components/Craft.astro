@@ -1,0 +1,67 @@
+---
+import Picture from './Picture.astro';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const imgs = ['craft-fabric', 'craft-fronts', 'craft-forms', 'craft-modules'] as const;
+---
+
+<section class="section craft" id="craft" aria-labelledby="craft-title">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">{d.craft.eyebrow}</p>
+      <h2 id="craft-title">{d.craft.title}</h2>
+    </div>
+    <ul class="craft__grid">
+      {
+        d.craft.items.map((item, i) => (
+          <li class="craft__item reveal" style={`--delay:${i * 0.07}s`}>
+            <div class="media craft__media">
+              <Picture name={imgs[i]} alt={item.alt} sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 23vw" />
+            </div>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .craft__grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(1rem, 2.2vw, 1.75rem);
+  }
+  .craft__item {
+    display: grid;
+    gap: 0.65rem;
+    align-content: start;
+  }
+  .craft__media {
+    aspect-ratio: 1;
+    margin-bottom: 0.35rem;
+  }
+  .craft__item h3 {
+    font-size: var(--step-2);
+  }
+  .craft__item p {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+  @media (max-width: 1024px) {
+    .craft__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 520px) {
+    .craft__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

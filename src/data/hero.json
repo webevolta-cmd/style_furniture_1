@@ -1,0 +1,33 @@
+{
+  "frames": 180,
+  "tiers": {
+    "desktop": {
+      "width": 1600,
+      "height": 900,
+      "step": 1,
+      "count": 180,
+      "bytes": 10314194
+    },
+    "desktop-lite": {
+      "width": 1280,
+      "height": 720,
+      "step": 2,
+      "count": 90,
+      "bytes": 3548378
+    },
+    "mobile": {
+      "width": 720,
+      "height": 1280,
+      "step": 1,
+      "count": 180,
+      "bytes": 9364500
+    },
+    "mobile-lite": {
+      "width": 540,
+      "height": 960,
+      "step": 2,
+      "count": 90,
+      "bytes": 2804406
+    }
+  }
+}

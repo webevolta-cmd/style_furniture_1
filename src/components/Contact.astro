@@ -1,0 +1,140 @@
+---
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+---
+
+<section class="section section--night contact" id="contact" aria-labelledby="contact-title">
+  <div class="container">
+    <div class="contact__final reveal">
+      <h2 id="contact-title">{d.final.title}</h2>
+      <div class="contact__ctas">
+        <a class="btn btn--gold" href="#request" data-request="consultation">
+          {d.final.cta}
+          <Icon name="arrow" />
+        </a>
+        <a class="btn btn--ghost-light" href={`tel:${business.phone.e164}`}>
+          <Icon name="phone" />
+          {d.final.call} {business.phone.display}
+        </a>
+      </div>
+    </div>
+
+    <div class="contact__grid">
+      <div class="contact__item reveal">
+        <span class="contact__icon"><Icon name="phone" /></span>
+        <p class="contact__label">{d.contact.phoneLabel}</p>
+        <a class="contact__value" href={`tel:${business.phone.e164}`}>{business.phone.displayIntl}</a>
+      </div>
+      <div class="contact__item reveal" style="--delay:0.07s">
+        <span class="contact__icon"><Icon name="instagram" /></span>
+        <p class="contact__label">{d.contact.instagramLabel}</p>
+        <a class="contact__value" href={business.instagram.url} target="_blank" rel="noopener">
+          @{business.instagram.handle}
+          <span class="visually-hidden">{d.a11y.newTab}</span>
+        </a>
+        <a class="contact__sub" href={business.instagram.direct} target="_blank" rel="noopener">
+          {d.contact.instagramText}
+          <span class="visually-hidden">{d.a11y.newTab}</span>
+        </a>
+      </div>
+      <div class="contact__item reveal" style="--delay:0.14s">
+        <span class="contact__icon"><Icon name="pin" /></span>
+        <p class="contact__label">{d.contact.locationLabel}</p>
+        <p class="contact__value">{business.locality[lang]}</p>
+      </div>
+    </div>
+    <p class="contact__note reveal">{d.contact.note}</p>
+  </div>
+</section>
+
+<style>
+  .contact__final {
+    display: grid;
+    gap: 1.75rem;
+    justify-items: start;
+    padding-bottom: var(--space-7);
+    margin-bottom: var(--space-6);
+    border-bottom: 1px solid rgba(243, 236, 226, 0.16);
+  }
+  .contact__final h2 {
+    font-size: var(--step-5);
+    max-width: 18ch;
+  }
+  :lang(hy) .contact__final h2 {
+    font-size: var(--step-4);
+    max-width: 24ch;
+  }
+  .contact__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .contact__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .contact__item {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+  }
+  .contact__icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(216, 183, 125, 0.45);
+    color: var(--gold-light);
+    margin-bottom: 0.5rem;
+  }
+  .contact__icon :global(svg) {
+    width: 22px;
+    height: 22px;
+  }
+  .contact__label {
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-night-2);
+  }
+  :lang(hy) .contact__label {
+    letter-spacing: 0.02em;
+  }
+  .contact__value {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    line-height: 1.15;
+    text-decoration: none;
+  }
+  a.contact__value:hover {
+    color: var(--gold-light);
+  }
+  .contact__sub {
+    color: var(--gold-light);
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .contact__note {
+    margin-top: var(--space-5);
+    color: var(--on-night-2);
+  }
+  @media (max-width: 860px) {
+    .contact__grid {
+      grid-template-columns: 1fr;
+    }
+    .contact__ctas .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>

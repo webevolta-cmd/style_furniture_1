@@ -1,0 +1,543 @@
+---
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+import { furnitureTypes } from '../data/furniture';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const f = d.inquiry;
+const requestTypes = ['consultation', 'measurement', 'quote', 'custom'] as const;
+const methods = ['call', 'sms', 'instagram'] as const;
+
+// Strings the client script needs (validation, summary, fallback)
+const clientText = {
+  errors: f.errors,
+  summaryTitle: f.summaryTitle,
+  summary: f.summary,
+  types: f.types,
+  types2: f.types2,
+  methods: f.methods,
+  units: f.units,
+  sending: f.sending,
+  submit: f.submit,
+  success: f.success,
+  copied: f.copied,
+  copyFailed: f.copyFailed,
+  langName: lang === 'hy' ? 'Հայերեն' : 'English',
+};
+---
+
+<section class="section inquiry" id="request" aria-labelledby="request-title">
+  <div class="container inquiry__grid">
+    <div class="inquiry__intro">
+      <p class="eyebrow reveal">{f.eyebrow}</p>
+      <h2 id="request-title" class="reveal">{f.title}</h2>
+      <p class="inquiry__lead reveal">
+        {f.lead}
+        <a href={`tel:${business.phone.e164}`} class="inquiry__phone">{business.phone.display}</a>.
+      </p>
+      <ul class="free-chips inquiry__chips reveal" aria-label={d.services.title}>
+        <li><Icon name="chat" />{d.free.consultation}</li>
+        <li><Icon name="ruler" />{d.free.measurement}</li>
+        <li><Icon name="tools" />{d.free.installation}</li>
+      </ul>
+      <div class="inquiry__direct reveal">
+        <a class="btn btn--ghost" href={`tel:${business.phone.e164}`}>
+          <Icon name="phone" />
+          {business.phone.display}
+        </a>
+        <a class="btn btn--ghost" href={business.instagram.direct} target="_blank" rel="noopener">
+          <Icon name="instagram" />
+          Instagram Direct
+          <span class="visually-hidden">{d.a11y.newTab}</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="inquiry__card reveal">
+      <form
+        class="form"
+        name="inquiry"
+        method="POST"
+        data-netlify="true"
+        netlify-honeypot="bot-field"
+        data-inquiry
+        data-text={JSON.stringify(clientText)}
+        data-phone={business.phone.e164}
+        data-instagram={business.instagram.direct}
+      >
+        <input type="hidden" name="form-name" value="inquiry" />
+        <input type="hidden" name="language" value={lang} />
+        <input type="hidden" name="configuration" value="" data-config-field />
+        <input type="hidden" name="summary" value="" />
+        <p class="visually-hidden" aria-hidden="true">
+          <label>Leave empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+        </p>
+
+        <div class="form__error-summary" role="alert" data-error-summary hidden></div>
+
+        <fieldset class="form__group">
+          <legend class="form__label">{f.requestType}</legend>
+          <div class="pills">
+            {
+              requestTypes.map((rt, i) => (
+                <label class="pill">
+                  <input type="radio" name="request_type" value={rt} checked={i === 0} />
+                  <span>{f.types[rt]}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+
+        <div class="form__config" data-config-chip hidden>
+          <span class="form__config-label">{f.config}:</span>
+          <strong data-config-chip-text></strong>
+          <button type="button" class="form__config-remove" data-config-remove aria-label={f.configRemove}>
+            <Icon name="close" />
+          </button>
+        </div>
+
+        <div class="form__row">
+          <div class="field">
+            <label for="f-name">{f.name}</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="80" placeholder={f.namePh} aria-describedby="f-name-err" />
+            <p class="field__error" id="f-name-err" data-error-for="name"></p>
+          </div>
+        </div>
+
+        <fieldset class="form__group">
+          <legend class="form__label">{f.contactMethod}</legend>
+          <div class="pills">
+            {
+              methods.map((m, i) => (
+                <label class="pill">
+                  <input type="radio" name="contact_method" value={m} checked={i === 0} />
+                  <span>{f.methods[m]}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+
+        <div class="form__row form__row--2">
+          <div class="field" data-field="phone">
+            <label for="f-phone">{f.phone}</label>
+            <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder={f.phonePh} aria-describedby="f-phone-err" required />
+            <p class="field__error" id="f-phone-err" data-error-for="phone"></p>
+          </div>
+          <div class="field" data-field="instagram" hidden>
+            <label for="f-instagram">{f.instagramUser}</label>
+            <input id="f-instagram" name="instagram" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder={f.instagramPh} aria-describedby="f-instagram-err" />
+            <p class="field__error" id="f-instagram-err" data-error-for="instagram"></p>
+          </div>
+          <div class="field">
+            <label for="f-furniture">{f.furnitureType}</label>
+            <select id="f-furniture" name="furniture" required aria-describedby="f-furniture-err">
+              <option value="">{f.choose}</option>
+              {furnitureTypes.map((ft) => <option value={ft}>{f.types2[ft]}</option>)}
+            </select>
+            <p class="field__error" id="f-furniture-err" data-error-for="furniture"></p>
+          </div>
+        </div>
+
+        <div class="field" data-field="furniture_other" hidden>
+          <label for="f-other">{f.otherType}</label>
+          <input id="f-other" name="furniture_other" type="text" maxlength="80" placeholder={f.otherTypePh} aria-describedby="f-other-err" />
+          <p class="field__error" id="f-other-err" data-error-for="furniture_other"></p>
+        </div>
+
+        <div class="field">
+          <label for="f-color">{f.color} <span class="field__opt">({f.optional})</span></label>
+          <input id="f-color" name="color" type="text" maxlength="120" placeholder={f.colorPh} />
+        </div>
+
+        <fieldset class="form__group">
+          <legend class="form__label">{f.dimensions} <span class="field__opt">({f.optional})</span></legend>
+          <div class="dims">
+            <div class="field">
+              <label for="f-w">{f.width}</label>
+              <input id="f-w" name="width" type="text" inputmode="decimal" maxlength="8" aria-describedby="f-dims-err" />
+            </div>
+            <span class="dims__x" aria-hidden="true">×</span>
+            <div class="field">
+              <label for="f-d">{f.depth}</label>
+              <input id="f-d" name="depth" type="text" inputmode="decimal" maxlength="8" aria-describedby="f-dims-err" />
+            </div>
+            <span class="dims__x" aria-hidden="true">×</span>
+            <div class="field">
+              <label for="f-h">{f.height}</label>
+              <input id="f-h" name="height" type="text" inputmode="decimal" maxlength="8" aria-describedby="f-dims-err" />
+            </div>
+            <div class="field dims__unit">
+              <label for="f-unit">{f.unit}</label>
+              <select id="f-unit" name="unit">
+                <option value="cm">{f.units.cm}</option>
+                <option value="mm">{f.units.mm}</option>
+                <option value="m">{f.units.m}</option>
+              </select>
+            </div>
+          </div>
+          <p class="field__error" id="f-dims-err" data-error-for="dims"></p>
+        </fieldset>
+
+        <div class="field">
+          <label for="f-model">{f.model} <span class="field__opt">({f.optional})</span></label>
+          <textarea id="f-model" name="model" rows="2" maxlength="600" placeholder={f.modelPh}></textarea>
+        </div>
+
+        <div class="field">
+          <label for="f-link">{f.link} <span class="field__opt">({f.optional})</span></label>
+          <input id="f-link" name="reference_link" type="url" inputmode="url" maxlength="400" placeholder={f.linkPh} aria-describedby="f-link-hint f-link-err" />
+          <p class="field__hint" id="f-link-hint">{f.linkHint}</p>
+          <p class="field__error" id="f-link-err" data-error-for="reference_link"></p>
+        </div>
+
+        <div class="field">
+          <label for="f-message">{f.message} <span class="field__opt">({f.optional})</span></label>
+          <textarea id="f-message" name="message" rows="3" maxlength="1500" placeholder={f.messagePh}></textarea>
+        </div>
+
+        <p class="form__privacy">{f.privacy}</p>
+
+        <button class="btn btn--gold form__submit" type="submit" data-submit>
+          <span data-submit-label>{f.submit}</span>
+          <Icon name="arrow" />
+        </button>
+
+        <noscript>
+          <p class="form__privacy">
+            {d.contact.phoneLabel}: <a href={`tel:${business.phone.e164}`}>{business.phone.display}</a> · Instagram:
+            <a href={business.instagram.url}>@{business.instagram.handle}</a>
+          </p>
+        </noscript>
+      </form>
+
+      <div class="form-result" data-result hidden tabindex="-1">
+        <div class="form-result__success" data-result-success hidden role="status">
+          <span class="form-result__icon"><Icon name="check" /></span>
+          <p>{f.success}</p>
+        </div>
+        <div class="form-result__fallback" data-result-fallback hidden>
+          <h3>{f.fallbackTitle}</h3>
+          <p>{f.fallbackText}</p>
+          <div class="form-result__actions">
+            <a class="btn btn--gold" href={`sms:${business.phone.e164}`} data-sms>
+              <Icon name="sms" />
+              {f.sendSms}
+            </a>
+            <button class="btn" type="button" data-instagram-send>
+              <Icon name="instagram" />
+              {f.sendInstagram}
+            </button>
+            <a class="btn btn--ghost" href={`tel:${business.phone.e164}`}>
+              <Icon name="phone" />
+              {d.a11y.call} {business.phone.display}
+            </a>
+          </div>
+          <label class="visually-hidden" for="f-summary">{f.summaryTitle}</label>
+          <textarea id="f-summary" class="form-result__summary" readonly rows="8" data-summary></textarea>
+          <p class="form-result__copied" role="status" data-copy-status></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .inquiry__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+  }
+  .inquiry__intro {
+    display: grid;
+    gap: 1.1rem;
+    position: sticky;
+    top: calc(var(--header-h) + 2rem);
+  }
+  .inquiry__intro h2 {
+    font-size: var(--step-4);
+  }
+  .inquiry__lead {
+    font-size: var(--step-1);
+    color: var(--ink-2);
+  }
+  .inquiry__phone {
+    color: var(--ink);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .inquiry__chips li {
+    background: var(--ivory);
+  }
+  .inquiry__direct {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .inquiry__card {
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    border-radius: var(--radius-l);
+    background: var(--ivory);
+    border: 1px solid var(--line);
+  }
+  .form {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .form__group {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .form__label,
+  .field label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.45rem;
+    padding: 0;
+  }
+  .field__opt {
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .pill {
+    position: relative;
+    cursor: pointer;
+  }
+  .pill input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .pill span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    transition:
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease),
+      border-color 0.2s var(--ease);
+  }
+  .pill input:checked + span {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .pill input:focus-visible + span {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 3px;
+  }
+  .form__row--2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .field {
+    display: grid;
+    min-width: 0;
+  }
+  .field[hidden] {
+    display: none;
+  }
+  input:not([type='radio']):not([type='hidden']),
+  select,
+  textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-s);
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    font-size: 1rem;
+    line-height: 1.4;
+    transition:
+      border-color 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 88px;
+  }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%231b1713' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    padding-right: 2.4rem;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 3px rgba(184, 143, 82, 0.25);
+  }
+  [aria-invalid='true'] {
+    border-color: var(--danger) !important;
+  }
+  .field__error {
+    color: var(--danger);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.3rem;
+  }
+  .field__error:empty {
+    display: none;
+  }
+  .field__hint {
+    font-size: 0.82rem;
+    color: var(--ink-3);
+    margin-top: 0.35rem;
+  }
+  .dims {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr minmax(5.5rem, 0.8fr);
+    gap: 0.5rem;
+    align-items: end;
+  }
+  .dims__x {
+    padding-bottom: 0.8rem;
+    color: var(--ink-3);
+  }
+  .dims label {
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+  .form__config {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--paper);
+    border: 1px dashed var(--gold);
+  }
+  .form__config[hidden] {
+    display: none;
+  }
+  .form__config-label {
+    font-size: 0.85rem;
+    color: var(--ink-2);
+  }
+  .form__config-remove {
+    margin-left: auto;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    cursor: pointer;
+  }
+  .form__config-remove :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
+  .form__error-summary {
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-s);
+    background: rgba(163, 51, 29, 0.08);
+    color: var(--danger);
+    font-weight: 600;
+  }
+  .form__privacy {
+    font-size: 0.82rem;
+    color: var(--ink-3);
+  }
+  .form__submit {
+    width: 100%;
+    min-height: 54px;
+    font-size: 1rem;
+  }
+  .form-result {
+    outline: none;
+  }
+  .form-result__success {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 2rem 1rem;
+    font-size: var(--step-1);
+  }
+  .form-result__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+  }
+  .form-result__icon :global(svg) {
+    width: 30px;
+    height: 30px;
+  }
+  .form-result__fallback {
+    display: grid;
+    gap: 0.9rem;
+  }
+  .form-result__fallback h3 {
+    font-size: var(--step-2);
+  }
+  .form-result__actions {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .form-result__summary {
+    font-size: 0.88rem;
+    background: var(--paper);
+    min-height: 160px;
+  }
+  .form-result__copied {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--success);
+  }
+  @media (max-width: 960px) {
+    .inquiry__grid {
+      grid-template-columns: 1fr;
+    }
+    .inquiry__intro {
+      position: static;
+    }
+  }
+  @media (max-width: 560px) {
+    .form__row--2 {
+      grid-template-columns: 1fr;
+    }
+    .dims {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+    }
+    .dims__unit {
+      grid-column: 1 / -1;
+    }
+    .pill span {
+      padding: 0.5rem 0.85rem;
+      font-size: 0.86rem;
+    }
+  }
+</style>

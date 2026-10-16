@@ -1,0 +1,31 @@
+---
+import images from '../data/images.json';
+
+interface Props {
+  name: keyof typeof images;
+  alt: string;
+  sizes: string;
+  loading?: 'lazy' | 'eager';
+  class?: string;
+}
+
+const { name, alt, sizes, loading = 'lazy', class: className } = Astro.props;
+const img = images[name];
+const set = (ext: string) => img.widths.map((w) => `/media/img/${name}-${w}.${ext} ${w}w`).join(', ');
+const largest = img.widths[img.widths.length - 1];
+---
+
+<picture class={className}>
+  <source type="image/avif" srcset={set('avif')} sizes={sizes} />
+  <source type="image/webp" srcset={set('webp')} sizes={sizes} />
+  <img
+    src={`/media/img/${name}-${largest}.jpg`}
+    srcset={set('jpg')}
+    sizes={sizes}
+    width={img.width}
+    height={img.height}
+    alt={alt}
+    loading={loading}
+    decoding="async"
+  />
+</picture>

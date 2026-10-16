@@ -1,0 +1,63 @@
+---
+import { monogramF, monogramS } from '../data/monogram';
+interface Props {
+  tone?: 'dark' | 'light';
+}
+const { tone = 'dark' } = Astro.props;
+---
+
+<span class:list={['logo', `logo--${tone}`]}>
+  <svg class="logo__mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+    <circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" stroke-width="2.4"></circle>
+    <path d={monogramS} fill="currentColor"></path>
+    <path d={monogramF} fill="currentColor" fill-opacity="0.9"></path>
+  </svg>
+  <span class="logo__word" lang="en">
+    <span class="logo__style">Style</span>
+    <span class="logo__furniture">Furniture</span>
+  </span>
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .logo--light {
+    color: var(--on-night);
+  }
+  .logo__mark {
+    width: 40px;
+    height: 40px;
+    color: var(--gold-deep);
+    flex: none;
+  }
+  .logo--light .logo__mark {
+    color: var(--gold-light);
+  }
+  .logo__word {
+    display: grid;
+    gap: 3px;
+    text-transform: uppercase;
+  }
+  .logo__style {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.28rem;
+    letter-spacing: 0.24em;
+    line-height: 0.9;
+  }
+  .logo__furniture {
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.56rem;
+    letter-spacing: 0.42em;
+    color: var(--ink-3);
+  }
+  .logo--light .logo__furniture {
+    color: var(--on-night-2);
+  }
+</style>

@@ -1,0 +1,112 @@
+---
+import Icon from './Icon.astro';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const icons = ['chat', 'ruler', 'tools'] as const;
+---
+
+<section class="section section--tight services" id="services" aria-labelledby="services-title">
+  <div class="container">
+    <div class="services__head reveal">
+      <p class="eyebrow">{d.services.eyebrow}</p>
+      <h2 id="services-title">{d.services.title}</h2>
+      <p>{d.services.lead}</p>
+    </div>
+    <ol class="services__grid">
+      {
+        d.services.items.map((item, i) => (
+          <li class="services__card reveal" style={`--delay:${i * 0.08}s`}>
+            <span class="services__icon">
+              <Icon name={icons[i]} />
+            </span>
+            <span class="badge badge--gold">{d.process.free}</span>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+    <div class="services__ctas reveal">
+      <a class="btn" href="#request" data-request="consultation">{d.services.ctaConsult}</a>
+      <a class="btn btn--ghost" href="#request" data-request="measurement">{d.services.ctaMeasure}</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .services {
+    background: var(--paper);
+  }
+  .services__head {
+    display: grid;
+    gap: 0.9rem;
+    max-width: 44rem;
+    margin-bottom: var(--space-6);
+  }
+  .services__head h2 {
+    font-size: var(--step-4);
+  }
+  .services__head p {
+    font-size: var(--step-1);
+    color: var(--ink-2);
+  }
+  .services__grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+  }
+  .services__card {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    padding: clamp(1.4rem, 2.5vw, 2.2rem);
+    border-radius: var(--radius-l);
+    background: var(--ivory);
+    border: 1px solid var(--line);
+  }
+  .services__card .badge {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.2rem;
+  }
+  .services__icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--night);
+    color: var(--gold-light);
+  }
+  .services__icon :global(svg) {
+    width: 26px;
+    height: 26px;
+  }
+  .services__card h3 {
+    font-size: var(--step-2);
+    padding-right: 4.5rem;
+  }
+  .services__card p {
+    color: var(--ink-2);
+  }
+  .services__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: var(--space-5);
+  }
+  @media (max-width: 860px) {
+    .services__grid {
+      grid-template-columns: 1fr;
+    }
+    .services__ctas .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>

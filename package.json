@@ -1,0 +1,22 @@
+{
+  "name": "style-furniture",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Style Furniture — bilingual (Armenian/English) website for a custom furniture manufacturer in Yerevan.",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check:links": "node scripts/check-dist.mjs"
+  },
+  "dependencies": {
+    "astro": "7.3.8"
+  },
+  "devDependencies": {
+    "sharp": "0.34.5"
+  }
+}

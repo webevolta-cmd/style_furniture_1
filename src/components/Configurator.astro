@@ -1,0 +1,395 @@
+---
+import Icon from './Icon.astro';
+import { configProducts } from '../data/furniture';
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const first = configProducts[0];
+const srcset = (id: string, finish: string, widths: number[]) =>
+  widths.map((w) => `/media/config/${id}/${finish}-${w}.webp ${w}w`).join(', ');
+const sizes = '(max-width: 900px) 92vw, 58vw';
+
+// Data for the client script (localized names, images, aspect ratios)
+const clientData = configProducts.map((p) => ({
+  id: p.id,
+  formValue: p.formValue,
+  name: p.name[lang],
+  alt: p.alt[lang],
+  width: p.width,
+  height: p.height,
+  widths: p.widths,
+  defaultFinish: p.defaultFinish,
+  finishes: p.finishes.map((f) => ({ id: f.id, name: f.name[lang] })),
+}));
+---
+
+<section class="section section--sand config" id="colors" aria-labelledby="colors-title">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">{d.configurator.eyebrow}</p>
+      <h2 id="colors-title">{d.configurator.title}</h2>
+      <p>{d.configurator.lead}</p>
+    </div>
+
+    <div class="config__layout" data-config data-products={JSON.stringify(clientData)} data-sizes={sizes}>
+      <fieldset class="config__products">
+        <legend class="config__label">{d.configurator.productGroup}</legend>
+        <div class="segmented">
+          {
+            configProducts.map((p, i) => (
+              <label>
+                <input type="radio" name="cfg-product" value={p.id} checked={i === 0} />
+                <span>{p.name[lang]}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      <div class="config__stage">
+        <figure class="config__frame" style={`--ar:${first.width}/${first.height}; --arn:${first.width / first.height}`} data-config-frame>
+          <img
+            class="config__img"
+            data-config-img
+            src={`/media/config/${first.id}/${first.defaultFinish}-${first.widths[1]}.webp`}
+            srcset={srcset(first.id, first.defaultFinish, first.widths)}
+            sizes={sizes}
+            width={first.width}
+            height={first.height}
+            alt={`${first.alt[lang]}: ${first.finishes[0].name[lang]}`}
+            loading="lazy"
+            decoding="async"
+          />
+          <img class="config__img config__img--next" data-config-next alt="" aria-hidden="true" />
+          <figcaption class="config__caption">
+            <span class="badge badge--soft">{d.configurator.previewNote}</span>
+            <span class="badge badge--soft config__other-flag" data-config-other-flag hidden>{d.configurator.otherNote}</span>
+          </figcaption>
+          <span class="config__spinner" data-config-spinner aria-hidden="true"></span>
+        </figure>
+
+        {
+          configProducts.map((p, i) => (
+            <fieldset class="swatches" data-swatches={p.id} hidden={i !== 0}>
+              <legend class="config__label">
+                {d.configurator.swatchGroup} — {p.name[lang]}
+              </legend>
+              <div class="swatches__list">
+                {p.finishes.map((f) => (
+                  <label class="swatch">
+                    <input type="radio" name={`cfg-finish-${p.id}`} value={f.id} checked={f.id === p.defaultFinish} />
+                    <span class="swatch__dot" style={`--c:${f.swatch}`} aria-hidden="true" />
+                    <span class="swatch__name">{f.name[lang]}</span>
+                  </label>
+                ))}
+                <label class="swatch swatch--other">
+                  <input type="radio" name={`cfg-finish-${p.id}`} value="other" />
+                  <span class="swatch__dot swatch__dot--other" aria-hidden="true" />
+                  <span class="swatch__name">{d.configurator.other}</span>
+                </label>
+              </div>
+            </fieldset>
+          ))
+        }
+      </div>
+
+      <div class="config__panel">
+        <p class="config__selected" aria-live="polite" data-config-status>
+          <span class="config__selected-label">{d.configurator.selected}:</span>
+          <strong data-config-summary>{first.name[lang]} · {first.finishes[0].name[lang]}</strong>
+        </p>
+
+        <div class="config__other" data-config-other hidden>
+          <label for="cfg-other-text">{d.configurator.otherLabel}</label>
+          <input id="cfg-other-text" type="text" maxlength="120" placeholder={d.configurator.otherPlaceholder} data-config-other-input />
+          <p class="config__hint">{d.configurator.otherNote}</p>
+        </div>
+
+        <a class="btn btn--gold config__cta" href="#request" data-config-cta>
+          {d.configurator.cta}
+          <Icon name="arrow" />
+        </a>
+        <p class="config__hint">{d.configurator.sizeNote}</p>
+        <p class="config__disclaimer">{d.configurator.disclaimer}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .config__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+    grid-template-areas:
+      'stage products'
+      'stage panel';
+    grid-template-rows: auto 1fr;
+    gap: 1.5rem clamp(1.5rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+  .config__products {
+    grid-area: products;
+  }
+  .config__stage {
+    grid-area: stage;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .config__panel {
+    grid-area: panel;
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+  }
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .config__label {
+    font-size: var(--step--1);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    padding: 0;
+    margin-bottom: 0.7rem;
+  }
+  :lang(hy) .config__label {
+    letter-spacing: 0.02em;
+  }
+  .segmented {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .segmented label {
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+  .segmented input,
+  .swatch input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .segmented span {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    font-weight: 600;
+    line-height: 1.3;
+    transition:
+      border-color 0.2s var(--ease),
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease);
+  }
+  .segmented input:checked + span {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .segmented input:focus-visible + span,
+  .swatch input:focus-visible ~ .swatch__dot {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 3px;
+  }
+  .config__frame {
+    position: relative;
+    margin: 0 auto;
+    width: min(100%, calc(78svh * var(--arn)));
+    aspect-ratio: var(--ar);
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: var(--stone);
+    transition: aspect-ratio 0.45s var(--ease), width 0.45s var(--ease);
+  }
+  .config__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .config__img--next {
+    opacity: 0;
+    transition: opacity 0.35s var(--ease);
+  }
+  .config__img--next.is-visible {
+    opacity: 1;
+  }
+  .config__frame.is-other .config__img {
+    filter: saturate(0.6) brightness(0.96);
+  }
+  .config__caption {
+    position: absolute;
+    left: 0.85rem;
+    bottom: 0.85rem;
+    right: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .config__other-flag {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.75rem;
+    white-space: normal;
+  }
+  .config__spinner {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(251, 248, 243, 0.55);
+    border-top-color: var(--ink);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .config__frame.is-loading .config__spinner {
+    opacity: 1;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+  .swatches__list {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  .swatch {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.25rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s var(--ease);
+  }
+  .swatch:hover {
+    background: rgba(27, 23, 19, 0.04);
+  }
+  .swatch__dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.12),
+      inset 0 -6px 12px rgba(0, 0, 0, 0.12),
+      inset 0 6px 10px rgba(255, 255, 255, 0.18);
+    position: relative;
+    transition: transform 0.2s var(--ease);
+  }
+  .swatch__dot--other {
+    background: conic-gradient(#a8644a, #b8977a, #746e52, #2f4a3d, #70767c, #4f4748, #e2d8ca, #a8644a);
+  }
+  .swatch input:checked ~ .swatch__dot {
+    transform: scale(1.04);
+    box-shadow:
+      0 0 0 3px var(--paper),
+      0 0 0 5px var(--ink);
+  }
+  .swatch__name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .swatch input:checked ~ .swatch__name {
+    color: var(--ink);
+  }
+  .config__selected {
+    display: grid;
+    gap: 0.2rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius);
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+  .config__selected-label {
+    font-size: var(--step--1);
+    color: var(--ink-3);
+  }
+  .config__selected strong {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .config__other {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .config__other label {
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .config__other input {
+    min-height: 48px;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-s);
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+  }
+  .config__cta {
+    width: 100%;
+  }
+  .config__hint {
+    font-size: 0.88rem;
+    color: var(--ink-2);
+  }
+  .config__disclaimer {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--ink-3);
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 900px) {
+    .config__layout {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'products'
+        'stage'
+        'panel';
+    }
+    .segmented {
+      grid-template-columns: 1fr 1fr;
+    }
+    .segmented span {
+      min-height: 48px;
+      font-size: 0.9rem;
+      padding: 0.6rem 0.8rem;
+    }
+    .config__frame {
+      width: 100%;
+    }
+    .swatches__list {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 380px) {
+    .swatch__dot {
+      width: 40px;
+      height: 40px;
+    }
+  }
+</style>

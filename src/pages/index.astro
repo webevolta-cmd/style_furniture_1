@@ -1,0 +1,40 @@
+---
+// "/" is redirected by Netlify (see netlify.toml) to /hy/ or – when the visitor explicitly
+// chose English before – to /en/. This page is the fallback for other static hosts/previews.
+import { t } from '../i18n';
+const hy = t('hy');
+const en = t('en');
+const site = Astro.site!;
+---
+
+<!doctype html>
+<html lang="hy">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{hy.meta.title}</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href={new URL('/hy/', site).href} />
+    <link rel="alternate" hreflang="hy" href={new URL('/hy/', site).href} />
+    <link rel="alternate" hreflang="en" href={new URL('/en/', site).href} />
+    <link rel="alternate" hreflang="x-default" href={new URL('/hy/', site).href} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      (function () {
+        var l = 'hy';
+        try {
+          if (localStorage.getItem('sf-lang') === 'en' || /(?:^|;\s*)sf_lang_en=1/.test(document.cookie)) l = 'en';
+        } catch (e) {}
+        location.replace('/' + l + '/' + location.hash);
+      })();
+    </script>
+    <noscript><meta http-equiv="refresh" content="0; url=/hy/" /></noscript>
+    <style>
+      body { font-family: system-ui, sans-serif; background: #fbf8f3; color: #1b1713; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+      a { color: inherit; margin: 0 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <p><a href="/hy/" hreflang="hy" lang="hy">Հայերեն</a> · <a href="/en/" hreflang="en" lang="en">English</a></p>
+  </body>
+</html>

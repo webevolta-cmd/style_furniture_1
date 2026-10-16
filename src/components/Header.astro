@@ -1,0 +1,309 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+import { t, langs, langLabels, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const d = t(lang);
+const links = [
+  { href: '#furniture', label: d.nav.furniture },
+  { href: '#colors', label: d.nav.colors },
+  { href: '#process', label: d.nav.process },
+  { href: '#projects', label: d.nav.projects },
+  { href: '#contact', label: d.nav.contact },
+];
+---
+
+<header class="header" data-header>
+  <div class="header__bar container">
+    <a class="header__logo" href={`/${lang}/`} aria-label={d.a11y.home}>
+      <Logo />
+    </a>
+
+    <nav class="header__nav" aria-label={d.footer.nav}>
+      <ul>
+        {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+      </ul>
+    </nav>
+
+    <div class="header__tools">
+      <nav class="lang" aria-label={d.a11y.langGroup}>
+        {
+          langs.map((l) => (
+            <a
+              href={`/${l}/`}
+              class="lang__link"
+              hreflang={l}
+              lang={l}
+              aria-label={langLabels[l].long}
+              aria-current={l === lang ? 'true' : undefined}
+              data-lang-switch={l}
+            >
+              {langLabels[l].short}
+            </a>
+          ))
+        }
+      </nav>
+
+      <a class="header__phone" href={`tel:${business.phone.e164}`} aria-label={`${d.a11y.call} ${business.phone.display}`}>
+        <Icon name="phone" />
+        <span>{business.phone.display}</span>
+      </a>
+
+      <a class="btn btn--gold header__cta" href="#request" data-request="consultation">{d.nav.cta}</a>
+
+      <button
+        class="header__menu-btn"
+        type="button"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        data-menu-button
+        data-label-open={d.a11y.menuOpen}
+        data-label-close={d.a11y.menuClose}
+      >
+        <span class="visually-hidden" data-menu-label>{d.a11y.menuOpen}</span>
+        <Icon name="menu" class="icon-open" />
+        <Icon name="close" class="icon-close" />
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-menu" id="mobile-menu" data-menu hidden>
+    <nav aria-label={d.footer.nav}>
+      <ul>
+        {links.map((l) => <li><a href={l.href} data-menu-link>{l.label}</a></li>)}
+      </ul>
+    </nav>
+    <div class="mobile-menu__actions">
+      <a class="btn btn--gold" href="#request" data-request="consultation" data-menu-link>{d.nav.cta}</a>
+      <a class="btn btn--ghost" href={`tel:${business.phone.e164}`}>
+        <Icon name="phone" />
+        {business.phone.display}
+      </a>
+      <a class="btn btn--ghost" href={business.instagram.url} target="_blank" rel="noopener">
+        <Icon name="instagram" />
+        @{business.instagram.handle}
+        <span class="visually-hidden">{d.a11y.newTab}</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    transition:
+      background-color 0.35s var(--ease),
+      box-shadow 0.35s var(--ease),
+      -webkit-backdrop-filter 0.35s var(--ease),
+      backdrop-filter 0.35s var(--ease);
+    background: linear-gradient(to bottom, rgba(251, 248, 243, 0.78), rgba(251, 248, 243, 0));
+  }
+  .header[data-solid] {
+    background: rgba(251, 248, 243, 0.9);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
+    box-shadow: 0 1px 0 var(--line);
+  }
+  .header__bar {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .header__logo {
+    text-decoration: none;
+    flex: none;
+    border-radius: 6px;
+  }
+  .header__nav {
+    margin-left: auto;
+  }
+  .header__nav ul {
+    display: flex;
+    gap: clamp(0.9rem, 1.6vw, 1.8rem);
+    list-style: none;
+  }
+  .header__nav a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 0.4rem 0;
+    position: relative;
+    white-space: nowrap;
+  }
+  .header__nav a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.1rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+  }
+  .header__nav a:hover::after,
+  .header__nav a[aria-current='true']::after {
+    transform: scaleX(1);
+  }
+  .header__tools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+  }
+  .header__nav + .header__tools {
+    margin-left: 1.25rem;
+  }
+  .lang {
+    display: flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgba(251, 248, 243, 0.7);
+  }
+  .lang__link {
+    display: inline-grid;
+    place-items: center;
+    min-width: 44px;
+    height: 34px;
+    padding: 0 0.6rem;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+    transition:
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease);
+  }
+  .lang__link[aria-current='true'] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .lang__link:not([aria-current='true']):hover {
+    background: var(--sand);
+    color: var(--ink);
+  }
+  .header__phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .header__phone :global(svg) {
+    width: 18px;
+    height: 18px;
+    color: var(--gold-deep);
+  }
+  .header__cta {
+    min-height: 42px;
+    padding-inline: 1.1rem;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+  .header__menu-btn {
+    display: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: rgba(251, 248, 243, 0.7);
+    place-items: center;
+    cursor: pointer;
+  }
+  .header__menu-btn :global(svg) {
+    width: 22px;
+    height: 22px;
+  }
+  .header__menu-btn :global(.icon-close) {
+    display: none;
+  }
+  .header__menu-btn[aria-expanded='true'] :global(.icon-open) {
+    display: none;
+  }
+  .header__menu-btn[aria-expanded='true'] :global(.icon-close) {
+    display: block;
+  }
+
+  .mobile-menu {
+    position: absolute;
+    inset: var(--header-h) 0 auto;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 1rem var(--gutter) 1.5rem;
+    max-height: calc(100svh - var(--header-h));
+    overflow: auto;
+  }
+  .mobile-menu ul {
+    list-style: none;
+    display: grid;
+  }
+  .mobile-menu li a {
+    display: block;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    text-decoration: none;
+  }
+  .mobile-menu__actions {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+
+  @media (max-width: 1180px) {
+    .header__phone span {
+      display: none;
+    }
+  }
+  @media (max-width: 1060px) {
+    .header__nav {
+      display: none;
+    }
+    .header__menu-btn {
+      display: inline-grid;
+    }
+  }
+  @media (max-width: 640px) {
+    .header__cta {
+      display: none;
+    }
+    .header__tools {
+      gap: 0.45rem;
+    }
+    .header__phone {
+      width: 44px;
+      height: 44px;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: rgba(251, 248, 243, 0.7);
+    }
+    .lang__link {
+      min-width: 40px;
+      padding: 0 0.45rem;
+    }
+  }
+  @media (max-width: 380px) {
+    .header__logo :global(.logo__word) {
+      display: none;
+    }
+  }
+</style>
