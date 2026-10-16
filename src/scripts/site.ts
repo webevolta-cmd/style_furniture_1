@@ -9,12 +9,21 @@ function initHeader() {
   const menu = header.querySelector<HTMLElement>('[data-menu]')!;
   const label = header.querySelector<HTMLElement>('[data-menu-label]')!;
 
+  // The threshold is measured on load/resize only: reading layout inside the scroll handler
+  // would force a synchronous re-layout on every frame while the hero animates.
+  let limit = 40;
+  const measure = () => {
+    limit = Math.max(40, hero ? hero.offsetTop + hero.offsetHeight - window.innerHeight * 0.85 : 40);
+  };
   let ticking = false;
+  let solid: boolean | null = null;
   const update = () => {
     ticking = false;
-    const limit = hero ? hero.offsetTop + hero.offsetHeight - window.innerHeight * 0.85 : 40;
-    const solid = window.scrollY > Math.max(40, limit) || !menu.hidden;
-    header.toggleAttribute('data-solid', solid);
+    const next = window.scrollY > limit || !menu.hidden;
+    if (next !== solid) {
+      solid = next;
+      header.toggleAttribute('data-solid', next);
+    }
   };
   window.addEventListener(
     'scroll',
@@ -26,7 +35,15 @@ function initHeader() {
     },
     { passive: true },
   );
-  window.addEventListener('resize', update);
+  window.addEventListener('resize', () => {
+    measure();
+    update();
+  });
+  window.addEventListener('load', () => {
+    measure();
+    update();
+  });
+  measure();
   update();
 
   const setOpen = (open: boolean) => {

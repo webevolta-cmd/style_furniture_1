@@ -24,7 +24,7 @@ const links = [
       <Logo />
     </a>
 
-    <nav class="header__nav" aria-label={d.footer.nav}>
+    <nav class="header__nav" aria-label={d.a11y.mainNav}>
       <ul>
         {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
       </ul>
@@ -73,7 +73,7 @@ const links = [
   </div>
 
   <div class="mobile-menu" id="mobile-menu" data-menu hidden>
-    <nav aria-label={d.footer.nav}>
+    <nav aria-label={d.a11y.mainNav}>
       <ul>
         {links.map((l) => <li><a href={l.href} data-menu-link>{l.label}</a></li>)}
       </ul>

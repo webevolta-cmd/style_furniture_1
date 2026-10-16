@@ -39,7 +39,7 @@ const items = [
               <div class="media projects__media">
                 <Picture
                   name={it.img}
-                  alt={d.projects.items[it.key]}
+                  alt={d.projects.alts[it.key]}
                   sizes={it.cls === 'wide' ? '(max-width: 760px) 92vw, 62vw' : '(max-width: 760px) 92vw, 31vw'}
                 />
                 {'viz' in it && <span class="badge badge--soft projects__badge">{d.furniture.visualization}</span>}

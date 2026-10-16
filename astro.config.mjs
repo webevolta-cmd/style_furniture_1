@@ -13,7 +13,7 @@ export default defineConfig({
   compressHTML: true,
   build: {
     format: 'directory',
-    inlineStylesheets: 'auto',
+    inlineStylesheets: 'always',
   },
   devToolbar: { enabled: false },
 });

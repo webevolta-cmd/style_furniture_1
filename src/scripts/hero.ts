@@ -40,6 +40,8 @@ class FrameSource {
   private failures = 0;
   private coarse: number[];
   paused = false;
+  /** Until the visitor engages, only the coarse pass is fetched. */
+  coarseOnly = true;
   current = 0;
   onDecoded: () => void = () => {};
   onFatal: () => void = () => {};
@@ -67,6 +69,7 @@ class FrameSource {
     const c = this.current;
     const coarse = this.coarse.filter(pending).sort((a, b) => Math.abs(a - c) - Math.abs(b - c));
     if (coarse.length) return coarse[0];
+    if (this.coarseOnly) return -1;
     let best = -1;
     let bestD = Infinity;
     for (let k = 0; k < this.tier.count; k++) {
@@ -246,6 +249,7 @@ export function initHero() {
       img.src = portraitMq.matches ? '/media/hero/mobile-end-720.webp' : '/media/hero/desktop-end-1600.webp';
       canvas.after(img);
     };
+    source.coarseOnly = !engaged;
     if (prevFraction !== null) target = prevFraction * (tier.count - 1);
     shown = -1;
     lastDrawKey = '';
@@ -260,8 +264,10 @@ export function initHero() {
     const w = stage.clientWidth;
     const h = stage.clientHeight;
     const tier = source?.tier;
-    const cap = tier ? Math.max(1, (Math.max(tier.width, tier.height) * 1.3) / Math.max(w, h)) : dpr;
-    const scale = Math.max(1, Math.min(dpr, cap));
+    // Size the backing store so a cover-fitted frame is drawn at ~1:1 pixels: sharper is
+    // impossible (the frame has no more detail) and anything larger only costs fill-rate.
+    const native = tier ? Math.min(tier.width / w, tier.height / h) : dpr;
+    const scale = Math.max(1, Math.min(dpr, native));
     canvas.width = Math.round(w * scale);
     canvas.height = Math.round(h * scale);
     lastDrawKey = '';
@@ -274,16 +280,20 @@ export function initHero() {
     return fp;
   };
 
+  const cache = new Map<string, string>();
+  const setVar = (el: HTMLElement, key: string, name: string, value: string) => {
+    if (cache.get(key) === value) return; // avoid needless style invalidation
+    cache.set(key, value);
+    el.style.setProperty(name, value);
+  };
   const updateChrome = (fp: number) => {
-    const s = hero.style;
-    s.setProperty('--p', progress.toFixed(4));
-    s.setProperty('--intro', (1 - smooth(0.025, 0.11, progress)).toFixed(3));
-    s.setProperty('--chrome', smooth(0.03, 0.09, progress).toFixed(3));
-    s.setProperty('--final', smooth(0.875, 0.94, progress).toFixed(3));
-    s.setProperty('--fp', fp.toFixed(4));
+    setVar(hero, 'intro', '--intro', (1 - smooth(0.025, 0.11, progress)).toFixed(3));
+    setVar(hero, 'chrome', '--chrome', smooth(0.03, 0.09, progress).toFixed(3));
+    setVar(hero, 'final', '--final', smooth(0.875, 0.94, progress).toFixed(3));
+    if (degraded) setVar(hero, 'fp', '--fp', fp.toFixed(3));
     const n = stageNames.length || 5;
     const st = Math.min(n - 1, Math.floor(fp * n));
-    ticks.forEach((t, i) => t.style.setProperty('--fill', clamp(fp * n - i).toFixed(3)));
+    ticks.forEach((t, i) => setVar(t, `t${i}`, '--fill', clamp(fp * n - i).toFixed(2)));
     if (st !== lastStage) {
       lastStage = st;
       stageNum.textContent = String(st + 1).padStart(2, '0');
@@ -298,7 +308,10 @@ export function initHero() {
     const i1 = Math.min(i0 + 1, count - 1);
     const a = pos - i0;
     let b0 = source.bitmap(i0);
-    let b1 = a > 0.02 ? source.bitmap(i1) : undefined;
+    // Blend neighbouring frames only while moving slowly / settling – during fast scrubbing
+    // the blend isn't perceptible and would double the fill cost.
+    const settling = Math.abs(target - pos) < 1.5;
+    let b1 = a > 0.02 && settling ? source.bitmap(i1) : undefined;
     let key = `${i0}:${b1 ? a.toFixed(2) : 0}`;
     if (!b0) {
       const near = source.nearest(pos);
@@ -359,19 +372,51 @@ export function initHero() {
     if (!raf && visible) raf = requestAnimationFrame(tick);
   }
 
-  setSource();
-  measure();
-  readScroll();
-  shown = -1;
-  updateChrome(clamp(target / Math.max(1, source!.tier.count - 1)));
-  request();
+  // Frames must not compete with the critical path (poster image, fonts, CSS):
+  // start downloading once the page has loaded and is idle, or as soon as the visitor scrolls.
+  let started = false;
+  let engaged = false;
+  const engage = () => {
+    engaged = true;
+    if (source) {
+      source.coarseOnly = false;
+      source.pump();
+    }
+  };
+  const begin = () => {
+    if (started) return;
+    started = true;
+    setSource();
+    measure();
+    readScroll();
+    shown = -1;
+    request();
+    // Fetch the full sequence once the visitor scrolls; on fast connections also after a short pause.
+    if (!constrained) window.setTimeout(engage, 3500);
+  };
+  const whenIdle = () => {
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+      .requestIdleCallback;
+    const go = () => (idle ? idle(begin, { timeout: 1500 }) : window.setTimeout(begin, 300));
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+    if (document.readyState === 'complete') fonts.then(go);
+    else window.addEventListener('load', () => fonts.then(go), { once: true });
+  };
+  whenIdle();
 
-  window.addEventListener('scroll', request, { passive: true });
+  // Chrome (text, stage indicator) follows scroll even before frames arrive.
+  const onScroll = () => {
+    if (!started) begin();
+    if (!engaged) engage();
+    request();
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   let resizeTimer = 0;
   const onResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
+      if (!started) return;
       setSource();
       measure();
       request();

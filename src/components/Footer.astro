@@ -36,7 +36,7 @@ const links = [
         <span class="visually-hidden">{d.a11y.newTab}</span>
       </a>
       <span>{business.locality[lang]}</span>
-      <nav class="footer__lang" aria-label={d.a11y.langGroup}>
+      <div class="footer__lang" role="group" aria-label={d.a11y.langGroup}>
         {
           langs.map((l) => (
             <a href={`/${l}/`} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} data-lang-switch={l}>
@@ -44,7 +44,7 @@ const links = [
             </a>
           ))
         }
-      </nav>
+      </div>
     </div>
   </div>
   <div class="container footer__legal">

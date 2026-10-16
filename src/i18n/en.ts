@@ -14,6 +14,7 @@ const en: Dict = {
     skip: 'Skip to main content',
     menuOpen: 'Open menu',
     menuClose: 'Close menu',
+    mainNav: 'Main menu',
     langGroup: 'Site language',
     home: 'Style Furniture — home',
     call: 'Call',
@@ -208,6 +209,14 @@ const en: Dict = {
     title: 'Our work',
     lead: 'Furniture we have made for our clients — for homes and commercial spaces.',
     instagram: 'More on Instagram',
+    alts: {
+      kitchen: 'Photo: a long kitchen wall with light upper cabinets, oak-tone fronts, a lit worktop and an island with black bar stools',
+      clinic: 'Photo: three taupe velvet armchairs with dark green cushions along oak-tone wall panels',
+      livingSofa: 'Photo: a light grey modular corner sofa on a glossy oak floor by large balcony windows',
+      lounge: 'Modular sofa and ottoman in a living room',
+      bedFrame: 'Photo: the frame of the layered upholstered bed with wooden slats and the matching bench, in an apartment',
+      bedroom: 'Bedroom with a layered upholstered headboard bed, round bedside tables, a bouclé bench and a built-in wardrobe',
+    },
     items: {
       kitchen: 'Kitchen with oak-tone fronts and an island',
       clinic: 'Armchairs for a medical center waiting area',

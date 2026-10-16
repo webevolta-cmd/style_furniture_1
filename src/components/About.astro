@@ -50,10 +50,16 @@ const d = t(lang);
   }
   .about__copy {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.1rem;
+    container-type: inline-size;
   }
   .about__copy h2 {
     font-size: var(--step-4);
+  }
+  /* Long Armenian words (e.g. «Հարմարավետություն») must fit the column without breaking. */
+  .about__copy h2:lang(hy) {
+    font-size: min(var(--step-4), 9cqi);
   }
   .about__copy > p {
     color: var(--ink-2);

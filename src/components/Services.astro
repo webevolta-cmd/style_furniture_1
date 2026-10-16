@@ -63,6 +63,7 @@ const icons = ['chat', 'ruler', 'tools'] as const;
   .services__card {
     position: relative;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 0.8rem;
     padding: clamp(1.4rem, 2.5vw, 2.2rem);
@@ -90,7 +91,6 @@ const icons = ['chat', 'ruler', 'tools'] as const;
   }
   .services__card h3 {
     font-size: var(--step-2);
-    padding-right: 4.5rem;
   }
   .services__card p {
     color: var(--ink-2);
@@ -103,7 +103,7 @@ const icons = ['chat', 'ruler', 'tools'] as const;
   }
   @media (max-width: 860px) {
     .services__grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .services__ctas .btn {
       flex: 1 1 100%;
