@@ -1,33 +1,53 @@
 {
   "frames": 180,
+  "stages": [
+    0,
+    36,
+    72,
+    108,
+    144
+  ],
   "tiers": {
     "desktop": {
       "width": 1600,
       "height": 900,
       "step": 1,
       "count": 180,
-      "bytes": 10314194
+      "bytes": 10170310
     },
     "desktop-lite": {
       "width": 1280,
       "height": 720,
       "step": 2,
       "count": 90,
-      "bytes": 3548378
+      "bytes": 3486430
     },
     "mobile": {
       "width": 720,
       "height": 1280,
       "step": 1,
       "count": 180,
-      "bytes": 9364500
+      "bytes": 8606852
     },
     "mobile-lite": {
       "width": 540,
       "height": 960,
       "step": 2,
       "count": 90,
-      "bytes": 2804406
+      "bytes": 2613398
     }
+  },
+  "posters": {
+    "desktop": [
+      960,
+      1600,
+      1920
+    ],
+    "mobile": [
+      540,
+      720,
+      860,
+      1080
+    ]
   }
 }

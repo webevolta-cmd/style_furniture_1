@@ -11,9 +11,7 @@ const { lang } = Astro.props;
 const d = t(lang);
 
 const set = (orient: 'desktop' | 'mobile', state: 'start' | 'end', ext: string) =>
-  (orient === 'desktop' ? [960, 1600, 1920] : [540, 720, 1080])
-    .map((w) => `/media/hero/${orient}-${state}-${w}.${ext} ${w}w`)
-    .join(', ');
+  heroManifest.posters[orient].map((w) => `/media/hero/${orient}-${state}-${w}.${ext} ${w}w`).join(', ');
 
 // Media queries for art direction. Reduced motion shows the finished room, never the sequence.
 const RM = '(prefers-reduced-motion: reduce)';
@@ -24,9 +22,11 @@ const sources = [
   { media: PORTRAIT, o: 'mobile', s: 'start' },
 ] as const;
 const tiers = JSON.stringify(heroManifest.tiers);
+// first frame of each assembly stage (indices of the full 180-frame sequence)
+const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
 ---
 
-<section class="hero" id="top" data-hero data-frames={heroManifest.frames} data-tiers={tiers} aria-labelledby="hero-title">
+<section class="hero" id="top" data-hero data-tiers={tiers} data-stages={stages} aria-labelledby="hero-title">
   <div class="hero__stage" data-hero-stage>
     <picture class="hero__poster">
       {
@@ -53,21 +53,37 @@ const tiers = JSON.stringify(heroManifest.tiers);
       />
     </picture>
     <canvas class="hero__canvas" data-hero-canvas aria-hidden="true"></canvas>
+    <picture class="hero__still" aria-hidden="true">
+      <source media={PORTRAIT} type="image/avif" data-srcset={set('mobile', 'end', 'avif')} sizes="100vw" />
+      <source type="image/avif" data-srcset={set('desktop', 'end', 'avif')} sizes="100vw" />
+      <source media={PORTRAIT} type="image/webp" data-srcset={set('mobile', 'end', 'webp')} sizes="100vw" />
+      <img alt="" decoding="async" data-hero-still data-srcset={set('desktop', 'end', 'webp')} sizes="100vw" />
+    </picture>
     <div class="hero__scrim" aria-hidden="true"></div>
 
     <div class="hero__inner container">
-      <div class="hero__intro" data-hero-intro>
-        <p class="eyebrow">{d.hero.eyebrow}</p>
-        <h1 id="hero-title">
-          <span class="hero__brand" lang="en">Style Furniture</span>
-          <span class="hero__title">{d.hero.title}</span>
-        </h1>
-        <p class="hero__lead">{d.hero.lead}</p>
-      </div>
+      <p class="eyebrow hero__eyebrow">{d.hero.eyebrow}</p>
+      <h1 id="hero-title" class="hero__h1">
+        <span class="hero__brand" lang="en">Style Furniture</span>
+        <span class="hero__title">{d.hero.title}</span>
+      </h1>
 
-      <div class="hero__final" data-hero-final>
-        <p class="hero__final-title">{d.hero.finalTitle}</p>
-        <p class="hero__final-text">{d.hero.finalText}</p>
+      <!-- one slot under the headline: lead → stage progress → finished-room caption -->
+      <div class="hero__swap">
+        <p class="hero__lead">{d.hero.lead}</p>
+        <div class="hero__progress" data-hero-progress data-stage-names={JSON.stringify(d.hero.stages)} aria-hidden="true">
+          <p class="hero__stage-label">
+            <span class="hero__stage-num" data-hero-stage-num>01</span>
+            <span data-hero-stage-name>{d.hero.stages[0]}</span>
+          </p>
+          <ol class="hero__ticks">
+            {d.hero.stages.map((s, i) => <li data-stage={i} title={s} />)}
+          </ol>
+        </div>
+        <div class="hero__final">
+          <p class="hero__final-title">{d.hero.finalTitle}</p>
+          <p class="hero__final-text">{d.hero.finalText}</p>
+        </div>
       </div>
 
       <div class="hero__dock">
@@ -86,25 +102,17 @@ const tiers = JSON.stringify(heroManifest.tiers);
           <li><Icon name="ruler" /><span><b>{d.free.word}</b> {d.free.short.measurement}</span></li>
           <li><Icon name="tools" /><span><b>{d.free.word}</b> {d.free.short.installation}</span></li>
         </ul>
+        <p class="hero__free-line">{d.free.line}</p>
         <p class="hero__note">{d.hero.note}</p>
-      </div>
-
-      <div class="hero__progress" data-hero-progress data-stage-names={JSON.stringify(d.hero.stages)} aria-hidden="true">
-        <p class="hero__stage-label">
-          <span class="hero__stage-num" data-hero-stage-num>01</span>
-          <span data-hero-stage-name>{d.hero.stages[0]}</span>
-        </p>
-        <ol class="hero__ticks">
-          {d.hero.stages.map((s, i) => <li data-stage={i} title={s} />)}
-        </ol>
       </div>
     </div>
 
-    <a class="hero__skip" href="#services">
+    <a class="hero__skip" href="#services" aria-label={d.hero.skip}>
       <Icon name="arrow-down" />
-      <span>{d.hero.skip}</span>
+      <span class="hero__skip-long" aria-hidden="true">{d.hero.skip}</span>
+      <span class="hero__skip-short" aria-hidden="true">{d.hero.skipShort}</span>
     </a>
-    <p class="hero__hint" data-hero-hint aria-hidden="true">{d.hero.scrollHint}</p>
+    <p class="hero__hint" aria-hidden="true">{d.hero.scrollHint}</p>
   </div>
 </section>
 
@@ -135,24 +143,48 @@ const tiers = JSON.stringify(heroManifest.tiers);
   }
   .hero__poster,
   .hero__poster img,
-  .hero__canvas {
+  .hero__canvas,
+  .hero__still,
+  .hero__still img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
   }
-  .hero__poster img {
+  .hero__poster img,
+  .hero__still img {
     object-fit: cover;
     object-position: 50% 55%;
   }
+  /* The canvas pulls back from 1.05x to the reference framing as the room is assembled;
+     the opening poster starts at the same 1.05x so the hand-over is seamless. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .hero__poster img {
+      transform: scale(1.05);
+      transform-origin: 50% 55%;
+    }
+  }
   .hero__canvas {
     opacity: 0;
-    transition: opacity 0.4s var(--ease);
+    transition: opacity 0.35s var(--ease);
   }
   .hero.is-ready .hero__canvas {
     opacity: 1;
   }
-  .hero.is-degraded .hero__canvas {
+  /* While the bare room is held, the sharper full-resolution poster shows through */
+  .hero.is-ready.is-held-start .hero__canvas {
+    opacity: 0;
+  }
+  .hero__still {
+    opacity: 0;
+    transition: opacity 0.35s var(--ease);
+    pointer-events: none;
+  }
+  .hero.is-held-end .hero__still.is-loaded {
+    opacity: 1;
+  }
+  .hero.is-degraded .hero__canvas,
+  .hero.is-degraded .hero__still {
     display: none;
   }
   .hero :global(.hero__fallback) {
@@ -173,33 +205,25 @@ const tiers = JSON.stringify(heroManifest.tiers);
       linear-gradient(to top, rgba(251, 248, 243, 0.85) 0%, rgba(251, 248, 243, 0.45) 18%, rgba(251, 248, 243, 0) 34%),
       linear-gradient(to right, rgba(251, 248, 243, 0.32) 0%, rgba(251, 248, 243, 0) 38%);
   }
+
+  /* ---------- layout: headline always on screen; one slot below it swaps
+     lead → stage progress → finished-room caption ---------- */
   .hero__inner {
     position: relative;
     height: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: 1fr auto;
+    grid-template-columns: minmax(0, 38rem) minmax(0, 1fr);
+    grid-template-rows: auto auto auto 1fr auto;
+    row-gap: 0.9rem;
     padding-top: calc(var(--header-h) + clamp(1rem, 4vh, 3.5rem));
     padding-bottom: clamp(1.25rem, 4vh, 2.75rem);
   }
-  .hero__intro,
-  .hero__final {
-    grid-column: 1;
+  .hero__eyebrow {
     grid-row: 1;
-    align-self: start;
-    max-width: 36rem;
-  }
-  .hero__intro {
-    display: grid;
-    gap: 1rem;
     opacity: var(--intro);
-    transform: translate3d(0, calc((1 - var(--intro)) * -28px), 0);
-    will-change: opacity, transform;
   }
-  .hero__intro[data-hidden] {
-    visibility: hidden;
-  }
-  h1 {
+  .hero__h1 {
+    grid-row: 2;
     display: grid;
     gap: 0.35rem;
   }
@@ -219,49 +243,41 @@ const tiers = JSON.stringify(heroManifest.tiers);
     font-size: clamp(2.05rem, 1.5rem + 2.6vw, 4rem);
     line-height: 1.12;
   }
+  .hero__swap {
+    grid-row: 3;
+    display: grid;
+    align-items: start;
+  }
+  .hero__swap > * {
+    grid-area: 1 / 1;
+  }
   .hero__lead {
     font-size: var(--step-1);
     color: var(--ink-2);
     max-width: 30rem;
+    opacity: var(--intro);
+    transform: translate3d(0, calc((1 - var(--intro)) * -16px), 0);
   }
   .hero__final {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.4rem;
+    max-width: 30rem;
     opacity: var(--final);
-    transform: translate3d(0, calc((1 - var(--final)) * 24px), 0);
+    transform: translate3d(0, calc((1 - var(--final)) * 14px), 0);
     pointer-events: none;
   }
   .hero__final-title {
     font-family: var(--font-display);
-    font-size: var(--step-4);
-    line-height: 1.08;
+    font-size: var(--step-2);
+    line-height: 1.15;
     font-weight: 500;
   }
   .hero__final-text {
-    font-size: var(--step-1);
+    font-size: var(--step-0);
     color: var(--ink-2);
-    max-width: 28rem;
-  }
-  .hero__dock {
-    grid-column: 1;
-    grid-row: 2;
-    display: grid;
-    gap: 0.9rem;
-    align-self: end;
-  }
-  .hero__ctas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-  .hero__num {
-    white-space: nowrap;
   }
   .hero__progress {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: end;
-    justify-self: end;
+    justify-self: start;
     display: grid;
     gap: 0.6rem;
     min-width: 15rem;
@@ -269,8 +285,8 @@ const tiers = JSON.stringify(heroManifest.tiers);
     border-radius: var(--radius);
     background: rgba(251, 248, 243, 0.92);
     border: 1px solid var(--line);
-    opacity: var(--chrome);
-    transform: translate3d(0, calc((1 - var(--chrome)) * 12px), 0);
+    opacity: calc(var(--chrome) * (1 - var(--final)));
+    transform: translate3d(0, calc((1 - var(--chrome)) * 10px), 0);
   }
   .hero__stage-label {
     display: flex;
@@ -306,6 +322,20 @@ const tiers = JSON.stringify(heroManifest.tiers);
     transform-origin: left;
     transform: scaleX(var(--fill, 0));
   }
+  .hero__dock {
+    grid-row: 5;
+    display: grid;
+    gap: 0.9rem;
+    align-self: end;
+  }
+  .hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .hero__num {
+    white-space: nowrap;
+  }
   .hero__skip {
     position: absolute;
     top: calc(var(--header-h) + 0.75rem);
@@ -326,6 +356,9 @@ const tiers = JSON.stringify(heroManifest.tiers);
     width: 16px;
     height: 16px;
   }
+  .hero__skip-short {
+    display: none;
+  }
   .hero__hint {
     position: absolute;
     right: var(--gutter);
@@ -341,7 +374,7 @@ const tiers = JSON.stringify(heroManifest.tiers);
     display: none;
   }
   .hero__note {
-    font-size: 0.7rem;
+    font-size: 0.74rem;
     color: var(--ink-3);
   }
   .hero__free {
@@ -371,6 +404,9 @@ const tiers = JSON.stringify(heroManifest.tiers);
     color: var(--gold-deep);
     flex: none;
   }
+  .hero__free-line {
+    display: none;
+  }
 
   @media (min-width: 1100px) {
     .hero__hint {
@@ -378,6 +414,7 @@ const tiers = JSON.stringify(heroManifest.tiers);
     }
   }
 
+  /* ---------- phones ---------- */
   @media (max-width: 760px) {
     :global(.js) .hero {
       height: 380vh;
@@ -385,49 +422,49 @@ const tiers = JSON.stringify(heroManifest.tiers);
     }
     .hero__inner {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto 1fr auto;
+      row-gap: 0.55rem;
       padding-top: calc(var(--header-h) + 0.75rem);
       padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
-      gap: 0.6rem;
     }
-    .hero__intro,
-    .hero__final,
-    .hero__progress {
-      grid-row: 1;
-      grid-column: 1;
-    }
-    .hero__intro .eyebrow {
+    .hero__eyebrow {
       display: none;
     }
-    .hero__intro {
-      gap: 0.55rem;
+    .hero__h1 {
+      grid-row: 1;
+      gap: 0.25rem;
     }
     .hero__brand {
       font-size: 0.95rem;
+      min-height: 40px; /* as tall as the skip button beside it, so the title starts below both */
+      display: flex;
+      align-items: center;
+      padding-right: 7.5rem; /* room for the skip button on the brand line */
     }
     .hero__title,
     :lang(hy) .hero__title {
-      font-size: clamp(1.75rem, 1.2rem + 3.2vw, 2.4rem);
+      font-size: clamp(1.7rem, 1.2rem + 3.2vw, 2.3rem);
+    }
+    .hero__swap {
+      grid-row: 2;
     }
     .hero__lead {
       font-size: 0.95rem;
       line-height: 1.5;
     }
     .hero__final-title {
-      font-size: clamp(1.7rem, 1.3rem + 2.4vw, 2.2rem);
+      font-size: 1.25rem;
     }
     .hero__final-text {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
     .hero__progress {
-      align-self: start;
       justify-self: stretch;
       min-width: 0;
       padding: 0.6rem 0.8rem;
-      opacity: calc(var(--chrome) * (1 - var(--final)));
     }
     .hero__dock {
-      grid-row: 3;
+      grid-row: 4;
       gap: 0.55rem;
     }
     .hero__ctas {
@@ -436,7 +473,7 @@ const tiers = JSON.stringify(heroManifest.tiers);
       gap: 0.5rem;
     }
     .hero__cta {
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       padding-inline: 1rem;
       min-height: 52px;
     }
@@ -451,19 +488,22 @@ const tiers = JSON.stringify(heroManifest.tiers);
     .hero__call-text {
       display: none;
     }
+    /* three equal-height chips; each is at least as wide as its longest word
+       («խորհրդատվություն» must never be cut) */
     .hero__free {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      display: flex;
       gap: 0.35rem;
     }
     .hero__free li {
+      flex: 1 1 auto;
       display: grid;
       justify-items: center;
+      align-content: center;
       text-align: center;
       gap: 0.15rem;
-      padding: 0.4rem 0.1rem;
+      padding: 0.45rem 0.15rem;
       border-radius: var(--radius-s);
-      font-size: min(0.72rem, 2.65vw);
+      font-size: max(0.75rem, min(0.8rem, 3.1vw));
       line-height: 1.2;
       font-weight: 500;
     }
@@ -472,19 +512,24 @@ const tiers = JSON.stringify(heroManifest.tiers);
       font-weight: 700;
       color: var(--gold-deep);
     }
-    .hero__free span {
-      overflow-wrap: break-word;
-      max-width: 100%;
-    }
     .hero__free :global(svg) {
       width: 16px;
       height: 16px;
     }
     .hero__skip {
+      top: calc(var(--header-h) + 0.6rem);
+      min-height: 36px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.78rem;
+    }
+    .hero__skip-long {
       display: none;
     }
+    .hero__skip-short {
+      display: inline;
+    }
     .hero__note {
-      font-size: 0.62rem;
+      font-size: 0.75rem;
       text-align: center;
     }
     .hero__scrim {
@@ -500,31 +545,70 @@ const tiers = JSON.stringify(heroManifest.tiers);
     }
   }
 
-  /* Phones in landscape: compact single row */
+  /* ---------- phones in landscape: compact, free services as one line ---------- */
   @media (max-height: 520px) and (orientation: landscape) {
     .hero__inner {
+      grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+      row-gap: 0.35rem;
       padding-top: calc(var(--header-h) + 0.4rem);
       padding-bottom: 0.8rem;
     }
-    .hero__title,
-    :lang(hy) .hero__title {
-      font-size: 1.7rem;
-    }
+    .hero__eyebrow,
     .hero__lead,
     .hero__free,
-    .hero__note,
     .hero__hint,
-    .hero__skip {
+    .hero__final-text {
       display: none;
+    }
+    .hero__title,
+    :lang(hy) .hero__title {
+      font-size: 1.6rem;
+    }
+    /* the header shows the full wordmark in landscape: keep the brand for assistive tech only */
+    .hero__brand {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      min-height: 0;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .hero__final-title {
+      font-size: 1.1rem;
+    }
+    .hero__free-line {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .hero__note {
+      font-size: 0.75rem;
+      text-align: left;
     }
     .hero__progress {
       min-width: 12rem;
-      padding: 0.5rem 0.75rem;
+      padding: 0.45rem 0.75rem;
+    }
+    .hero__skip {
+      top: calc(var(--header-h) + 0.5rem);
+      min-height: 34px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.76rem;
+    }
+    .hero__skip-long {
+      display: none;
+    }
+    .hero__skip-short {
+      display: inline;
     }
     .hero__scrim {
       background:
         linear-gradient(to bottom, rgba(251, 248, 243, 0.7) 0%, rgba(251, 248, 243, 0) 30%),
-        linear-gradient(to right, rgba(251, 248, 243, 0.55) 0%, rgba(251, 248, 243, 0) 45%);
+        linear-gradient(to right, rgba(251, 248, 243, 0.6) 0%, rgba(251, 248, 243, 0) 50%),
+        linear-gradient(to top, rgba(251, 248, 243, 0.75) 0%, rgba(251, 248, 243, 0) 26%);
     }
   }
 
@@ -534,6 +618,7 @@ const tiers = JSON.stringify(heroManifest.tiers);
       height: 100svh;
     }
     .hero__canvas,
+    .hero__still,
     .hero__progress,
     .hero__hint,
     .hero__skip {

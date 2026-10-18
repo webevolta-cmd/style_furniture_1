@@ -13,14 +13,16 @@ import Inquiry from '../../components/Inquiry.astro';
 import Contact from '../../components/Contact.astro';
 import Footer from '../../components/Footer.astro';
 import { langs, type Lang } from '../../i18n';
+import heroManifest from '../../data/hero.json';
 
 export function getStaticPaths() {
   return langs.map((lang) => ({ params: { lang } }));
 }
 
 const lang = Astro.params.lang as Lang;
+// same candidates as the hero <picture>, so the preload and the image pick the same file
 const preload = (orient: 'desktop' | 'mobile', media: string) => {
-  const widths = orient === 'desktop' ? [960, 1600, 1920] : [540, 720, 1080];
+  const widths = heroManifest.posters[orient];
   return {
     href: `/media/hero/${orient}-start-${widths[1]}.avif`,
     imagesrcset: widths.map((w) => `/media/hero/${orient}-start-${w}.avif ${w}w`).join(', '),

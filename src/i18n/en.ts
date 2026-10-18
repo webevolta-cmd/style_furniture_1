@@ -48,7 +48,6 @@ const en: Dict = {
     scrollHint: 'Scroll to watch the room come together',
     skip: 'Skip the animation',
     skipShort: 'Skip',
-    stageLabel: 'Stage',
     stages: [
       'MDF wall panels',
       'Wardrobe carcass',
@@ -61,7 +60,6 @@ const en: Dict = {
     note: 'Animated visualization based on our bedroom project design',
     imageAlt:
       'A bright bedroom with a layered upholstered headboard bed, round bedside tables, a bouclé bench, MDF wall panels and a built-in wardrobe',
-    loading: 'Loading',
   },
 
   services: {
@@ -156,13 +154,11 @@ const en: Dict = {
     otherLabel: 'Describe the color or fabric you want',
     otherPlaceholder: 'e.g. deep emerald velvet',
     otherNote: 'This color isn’t shown in the preview — it will be included in your request.',
-    previewLabel: 'Color preview',
     previewNote: 'Color preview (visualization)',
     disclaimer:
       'On-screen colors are indicative and depend on your display. The final fabric and shade are chosen from samples during your consultation. A selection is not an order or a price confirmation.',
     cta: 'Request this configuration',
     sizeNote: 'Need a different size or model? Add it to your request.',
-    changed: 'Preview updated:',
     loadError: 'The preview isn’t available right now — your choice is still saved.',
   },
 

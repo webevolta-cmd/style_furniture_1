@@ -449,6 +449,17 @@ const clientData = configProducts.map((p) => ({
       grid-template-columns: 1fr;
     }
   }
+  /* Armenian colour names are long compounds («Ձիթապտղա-գույն»): on narrow phones three columns
+     keep every part on its own line instead of spilling out of the tile */
+  @media (max-width: 420px) and (orientation: portrait) {
+    :lang(hy) .swatches__list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.35rem;
+    }
+    :lang(hy) .swatch {
+      padding-inline: 0.1rem;
+    }
+  }
   @media (max-width: 380px) {
     .swatch__dot {
       width: 40px;

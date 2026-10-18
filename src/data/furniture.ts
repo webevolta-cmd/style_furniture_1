@@ -31,7 +31,7 @@ export const categories: Category[] = [
 
 export interface Finish {
   id: string;
-  /** swatch colour shown on the button (sampled from the preview's lit fabric) */
+  /** swatch colour shown on the button (close to the lit fabric in that finish's preview) */
   swatch: string;
   /** may contain soft hyphens (U+00AD) so long Armenian names wrap between word parts */
   name: { hy: string; en: string };

@@ -3,14 +3,13 @@
  * pre-rendered frame sequence (bare room → finished bedroom) drawn on a canvas.
  *
  * - Deterministic: the same scroll position always shows the same frame; scrolling back
- *   reverses the sequence. No autoplay.
- * - Bounded memory: frames are fetched as compressed blobs; only a small window around the
- *   current position is decoded to ImageBitmaps (LRU-evicted and closed).
- * - Progressive loading: a coarse pass first (so any position has a nearby frame), then the
- *   frames nearest to the current position. Work pauses when the hero is off-screen or the
- *   tab is hidden.
- * - Smoothness: drawing happens in requestAnimationFrame only while something changes; the
- *   two frames around the exact position are blended for sub-frame interpolation.
+ *   reverses the sequence. No autoplay. At rest the canvas shows one whole frame.
+ * - Bounded memory and bandwidth: a small coarse pass is fetched after load (so any position
+ *   has a nearby frame); after the visitor starts scrolling, only a window of frames around
+ *   the current position is fetched. Compressed blobs and decoded ImageBitmaps are both
+ *   LRU-capped. Work pauses when the hero is off-screen or the tab is hidden.
+ * - The held bare room and the held finished room are shown as full-resolution stills.
+ * - Devices that cannot keep up while scrubbing switch (once) to the lighter frame set.
  */
 
 interface TierInfo {
@@ -22,8 +21,10 @@ interface TierInfo {
 
 const HOLD_START = 0.05; // fraction of the pinned scroll spent on the bare room
 const ASSEMBLY_END = 0.86; // after this the finished room is held
-const DOLLY = 0.05; // gentle push-in over the assembly
+const DOLLY = 0.05; // gentle pull-back that settles exactly on the reference framing
 const FOCUS_Y = 0.55; // matches the poster's object-position
+const AHEAD = 36; // frames fetched ahead of the current position (in scroll direction)
+const BEHIND = 12;
 
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (a: number, b: number, v: number) => {
@@ -32,17 +33,21 @@ const smooth = (a: number, b: number, v: number) => {
 };
 
 class FrameSource {
-  readonly blobs: (Blob | null)[];
+  private blobs: (Blob | null)[];
   private state: Uint8Array; // 0 idle · 1 loading · 2 loaded · 3 failed
   private bitmaps = new Map<number, ImageBitmap>();
   private decoding = new Set<number>();
   private inflight = 0;
   private failures = 0;
-  private coarse: number[];
+  private coarse: Set<number>;
+  private disposed = false;
+  private aborter = new AbortController();
+  private stopped = false; // gave up after repeated failures
   paused = false;
   /** Until the visitor engages, only the coarse pass is fetched. */
   coarseOnly = true;
   current = 0;
+  direction = 1;
   onDecoded: () => void = () => {};
   onFatal: () => void = () => {};
 
@@ -51,13 +56,14 @@ class FrameSource {
     readonly tier: TierInfo,
     private readonly concurrency: number,
     private readonly maxBitmaps: number,
+    private readonly maxBlobs: number,
   ) {
     this.blobs = new Array(tier.count).fill(null);
     this.state = new Uint8Array(tier.count);
-    const stride = Math.max(1, Math.round(tier.count / 22));
-    this.coarse = [];
-    for (let k = 0; k < tier.count; k += stride) this.coarse.push(k);
-    this.coarse.push(tier.count - 1);
+    const stride = Math.max(1, Math.round(tier.count / 12));
+    this.coarse = new Set<number>();
+    for (let k = 0; k < tier.count; k += stride) this.coarse.add(k);
+    this.coarse.add(tier.count - 1);
   }
 
   url(k: number) {
@@ -65,26 +71,32 @@ class FrameSource {
   }
 
   private next(): number {
-    const pending = (k: number) => this.state[k] === 0;
-    const c = this.current;
-    const coarse = this.coarse.filter(pending).sort((a, b) => Math.abs(a - c) - Math.abs(b - c));
-    if (coarse.length) return coarse[0];
-    if (this.coarseOnly) return -1;
+    const c = Math.round(this.current);
     let best = -1;
     let bestD = Infinity;
-    for (let k = 0; k < this.tier.count; k++) {
-      if (!pending(k)) continue;
-      const d = k >= c ? k - c : (c - k) * 1.4; // slight forward bias
+    for (const k of this.coarse) {
+      if (this.state[k] !== 0) continue;
+      const d = Math.abs(k - c);
       if (d < bestD) {
         bestD = d;
         best = k;
       }
     }
-    return best;
+    if (best >= 0 || this.coarseOnly) return best;
+    // sliding window around the current position, biased in the scroll direction
+    const lo = Math.max(0, c - (this.direction >= 0 ? BEHIND : AHEAD));
+    const hi = Math.min(this.tier.count - 1, c + (this.direction >= 0 ? AHEAD : BEHIND));
+    for (let d = 0; d <= Math.max(c - lo, hi - c); d++) {
+      const fwd = c + d * (this.direction >= 0 ? 1 : -1);
+      const back = c - d * (this.direction >= 0 ? 1 : -1);
+      if (fwd >= lo && fwd <= hi && this.state[fwd] === 0) return fwd;
+      if (back >= lo && back <= hi && this.state[back] === 0) return back;
+    }
+    return -1;
   }
 
   pump() {
-    while (!this.paused && this.inflight < this.concurrency) {
+    while (!this.paused && !this.stopped && this.inflight < this.concurrency) {
       const k = this.next();
       if (k < 0) return;
       this.load(k);
@@ -95,22 +107,52 @@ class FrameSource {
     this.state[k] = 1;
     this.inflight++;
     try {
-      const res = await fetch(this.url(k));
+      const res = await fetch(this.url(k), { signal: this.aborter.signal });
       if (!res.ok) throw new Error(String(res.status));
-      this.blobs[k] = await res.blob();
+      const blob = await res.blob();
+      if (this.disposed) return;
+      this.blobs[k] = blob;
       this.state[k] = 2;
-      if (Math.abs(k - this.current) <= 6) this.ensureDecoded();
-    } catch {
+      this.trimBlobs();
+      this.ensureDecoded(this.direction);
+    } catch (err) {
+      if (this.disposed) return;
+      if ((err as Error).name === 'AbortError') {
+        this.state[k] = 0; // cancelled (page hidden / left), fetched again when needed
+        return;
+      }
       if (retry) {
-        this.state[k] = 0;
-        setTimeout(() => this.load(k, false), 1200);
+        // one retry after a pause; the frame stays marked as loading meanwhile, so pump()
+        // doesn't fetch it again in a tight loop while the network is down
+        setTimeout(() => !this.disposed && this.load(k, false), 1200);
       } else {
         this.state[k] = 3;
-        if (++this.failures > 8) this.onFatal();
+        if (++this.failures > 8) {
+          this.stopped = true;
+          this.onFatal();
+        }
       }
     } finally {
       this.inflight--;
       this.pump();
+    }
+  }
+
+  /** Drop compressed frames far from the current position (re-fetched from HTTP cache if needed). */
+  private trimBlobs() {
+    let held = 0;
+    for (const b of this.blobs) if (b) held++;
+    if (held <= this.maxBlobs) return;
+    const c = this.current;
+    const order = this.blobs
+      .map((b, k) => (b && !this.coarse.has(k) && !this.bitmaps.has(k) ? k : -1))
+      .filter((k) => k >= 0)
+      .sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
+    for (const k of order) {
+      if (held <= this.maxBlobs) break;
+      this.blobs[k] = null;
+      this.state[k] = 0;
+      held--;
     }
   }
 
@@ -126,18 +168,38 @@ class FrameSource {
       if (c + d <= hi) order.push(c + d);
       if (d && c - d >= lo) order.push(c - d);
     }
-    for (const k of order) {
-      if (this.bitmaps.has(k) || this.decoding.has(k) || !this.blobs[k]) continue;
-      this.decoding.add(k);
-      createImageBitmap(this.blobs[k]!)
-        .then((bmp) => {
-          this.decoding.delete(k);
-          this.bitmaps.set(k, bmp);
-          this.evict();
-          this.onDecoded();
-        })
-        .catch(() => this.decoding.delete(k));
-    }
+    for (const k of order) this.decode(k);
+    this.ensureNearest();
+  }
+
+  /** Until the exact frame arrives, the closest frame fetched so far must be decoded and drawable. */
+  private ensureNearest() {
+    const c = Math.round(this.current);
+    let best = -1;
+    let bestD = Infinity;
+    this.blobs.forEach((b, k) => {
+      const d = Math.abs(k - c);
+      if (b && d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    });
+    const near = this.nearest(c);
+    if (best >= 0 && !(near && Math.abs(near[0] - c) <= bestD)) this.decode(best);
+  }
+
+  private decode(k: number) {
+    if (this.disposed || this.bitmaps.has(k) || this.decoding.has(k) || !this.blobs[k]) return;
+    this.decoding.add(k);
+    createImageBitmap(this.blobs[k]!)
+      .then((bmp) => {
+        this.decoding.delete(k);
+        if (this.disposed) return bmp.close();
+        this.bitmaps.set(k, bmp);
+        this.evict();
+        this.onDecoded();
+      })
+      .catch(() => this.decoding.delete(k));
   }
 
   private evict() {
@@ -169,7 +231,15 @@ class FrameSource {
     return best;
   }
 
+  /** Cancel in-flight requests (page being left or frozen); they are re-requested on demand. */
+  abort() {
+    this.aborter.abort();
+    this.aborter = new AbortController();
+  }
+
   dispose() {
+    this.abort();
+    this.disposed = true;
     this.paused = true;
     for (const b of this.bitmaps.values()) b.close();
     this.bitmaps.clear();
@@ -206,22 +276,30 @@ export function initHero() {
   const stageName = hero.querySelector<HTMLElement>('[data-hero-stage-name]')!;
   const stageNames: string[] = JSON.parse(progressEl.dataset.stageNames || '[]');
   const tiers: Record<string, TierInfo> = JSON.parse(hero.dataset.tiers || '{}');
+  // first frame of each assembly stage, as fractions of the sequence
+  const stageStarts: number[] = (JSON.parse(hero.dataset.stages || '[]') as number[]).map((f) => f / 179);
+  const still = hero.querySelector<HTMLElement>('.hero__still');
+  const stillImg = hero.querySelector<HTMLImageElement>('[data-hero-still]');
 
   const portraitMq = window.matchMedia('(orientation: portrait)');
-  const constrained = connectionIsConstrained();
+  let constrained = connectionIsConstrained();
 
   let source: FrameSource | null = null;
+  // After a switch to another frame set, the previous set's decoded frames stay on screen until
+  // the new set has the exact frame (no blank canvas, no flash of the poster).
+  let retired: FrameSource | null = null;
   let degraded = false;
   let top = 0;
   let travel = 1;
-  let target = 0; // target frame position (float, tier index space)
-  let shown = -1; // currently displayed frame position
+  let target = 0; // target frame (whole frame index in tier space)
+  let shown = -1; // currently displayed frame position (eases toward target)
   let progress = 0;
   let lastStage = -1;
   let raf = 0;
   let lastTime = 0;
   let visible = true;
   let lastDrawKey = '';
+  let blend = true;
 
   const pickTier = () => {
     if (portraitMq.matches) return constrained ? 'mobile-lite' : 'mobile';
@@ -232,10 +310,14 @@ export function initHero() {
     const name = pickTier();
     if (source?.dir === name) return;
     const prevFraction = source ? target / Math.max(1, source.tier.count - 1) : null;
-    source?.dispose();
+    if (source) {
+      retired?.dispose();
+      retired = source;
+      retired.paused = true;
+    }
     const tier = tiers[name];
     const isDesktop = name.startsWith('desktop');
-    source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12);
+    source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12, isDesktop ? 72 : 84);
     source.onDecoded = () => request();
     source.onFatal = () => {
       if (degraded) return;
@@ -250,11 +332,19 @@ export function initHero() {
       canvas.after(img);
     };
     source.coarseOnly = !engaged;
-    if (prevFraction !== null) target = prevFraction * (tier.count - 1);
+    hero.dataset.tier = name;
+    syncPaused();
+    if (prevFraction !== null) target = Math.round(prevFraction * (tier.count - 1));
     shown = -1;
     lastDrawKey = '';
     source.current = target;
     source.pump();
+  };
+
+  // Fetching pauses while the hero is off-screen or the tab is hidden. Recomputed on every
+  // tick as well as on the events, so a page restored while hidden can never stay paused.
+  const syncPaused = () => {
+    if (source) source.paused = !visible || document.hidden;
   };
 
   const measure = () => {
@@ -268,15 +358,22 @@ export function initHero() {
     // impossible (the frame has no more detail) and anything larger only costs fill-rate.
     const native = tier ? Math.min(tier.width / w, tier.height / h) : dpr;
     const scale = Math.max(1, Math.min(dpr, native));
-    canvas.width = Math.round(w * scale);
-    canvas.height = Math.round(h * scale);
+    const cw = Math.round(w * scale);
+    const ch = Math.round(h * scale);
+    if (canvas.width === cw && canvas.height === ch) return;
+    // resizing clears the canvas: redraw in the same task so no empty frame is painted
+    canvas.width = cw;
+    canvas.height = ch;
     lastDrawKey = '';
+    if (source && shown >= 0) draw(shown, clamp(shown / Math.max(1, source.tier.count - 1)));
   };
 
   const readScroll = () => {
     progress = clamp((window.scrollY - top) / travel);
     const fp = clamp((progress - HOLD_START) / (ASSEMBLY_END - HOLD_START));
-    if (source) target = fp * (source.tier.count - 1);
+    // whole frames only: easing between them gives smooth motion, and at rest the picture is
+    // always one real frame (never a double exposure of two neighbours)
+    if (source) target = Math.round(fp * (source.tier.count - 1));
     return fp;
   };
 
@@ -286,19 +383,43 @@ export function initHero() {
     cache.set(key, value);
     el.style.setProperty(name, value);
   };
+  const stageOf = (fp: number) => {
+    let st = 0;
+    stageStarts.forEach((s, i) => {
+      if (fp >= s) st = i;
+    });
+    return st;
+  };
   const updateChrome = (fp: number) => {
     setVar(hero, 'intro', '--intro', (1 - smooth(0.025, 0.11, progress)).toFixed(3));
     setVar(hero, 'chrome', '--chrome', smooth(0.03, 0.09, progress).toFixed(3));
     setVar(hero, 'final', '--final', smooth(0.875, 0.94, progress).toFixed(3));
     if (degraded) setVar(hero, 'fp', '--fp', fp.toFixed(3));
-    const n = stageNames.length || 5;
-    const st = Math.min(n - 1, Math.floor(fp * n));
-    ticks.forEach((t, i) => setVar(t, `t${i}`, '--fill', clamp(fp * n - i).toFixed(2)));
+    const n = stageStarts.length || 5;
+    ticks.forEach((t, i) => {
+      const a = stageStarts[i] ?? i / n;
+      const b = stageStarts[i + 1] ?? 1;
+      setVar(t, `t${i}`, '--fill', clamp((fp - a) / Math.max(1e-6, b - a)).toFixed(2));
+    });
+    const st = Math.min(n - 1, stageOf(fp));
     if (st !== lastStage) {
       lastStage = st;
       stageNum.textContent = String(st + 1).padStart(2, '0');
       if (stageNames[st]) stageName.textContent = stageNames[st];
     }
+  };
+
+  // Full-resolution still of the finished room, requested once the visitor is past the middle.
+  let stillRequested = false;
+  const requestStill = () => {
+    if (stillRequested || !still || !stillImg) return;
+    stillRequested = true;
+    still.querySelectorAll<HTMLSourceElement | HTMLImageElement>('[data-srcset]').forEach((el) => {
+      el.srcset = el.dataset.srcset!;
+    });
+    const done = () => still.classList.add('is-loaded');
+    if (stillImg.complete && stillImg.naturalWidth) done();
+    else stillImg.addEventListener('load', done, { once: true });
   };
 
   const draw = (pos: number, fp: number) => {
@@ -308,17 +429,31 @@ export function initHero() {
     const i1 = Math.min(i0 + 1, count - 1);
     const a = pos - i0;
     let b0 = source.bitmap(i0);
-    // Blend neighbouring frames only while moving slowly / settling – during fast scrubbing
-    // the blend isn't perceptible and would double the fill cost.
+    // Blend neighbouring frames only while easing into the target (never at rest, where the
+    // position is a whole frame, and not during fast scrubbing, where it is imperceptible).
     const settling = Math.abs(target - pos) < 1.5;
-    let b1 = a > 0.02 && settling ? source.bitmap(i1) : undefined;
+    let b1 = blend && settling && a > 0.02 ? source.bitmap(i1) : undefined;
     let key = `${i0}:${b1 ? a.toFixed(2) : 0}`;
+    if (b0 && retired) {
+      retired.dispose();
+      retired = null;
+    }
     if (!b0) {
+      // closest decoded frame, from this set or from the set it just replaced
       const near = source.nearest(pos);
-      if (!near) return;
-      b0 = near[1];
+      const rs = retired ? (retired.tier.count - 1) / Math.max(1, count - 1) : 0;
+      const old = retired?.nearest(pos * rs);
+      const dNew = near ? Math.abs(near[0] - pos) / Math.max(1, count - 1) : Infinity;
+      const dOld = old ? Math.abs(old[0] - pos * rs) / Math.max(1, retired!.tier.count - 1) : Infinity;
+      if (!near && !old) return;
+      if (old && dOld < dNew) {
+        b0 = old[1];
+        key = `r${old[0]}`;
+      } else {
+        b0 = near![1];
+        key = `n${near![0]}`;
+      }
       b1 = undefined;
-      key = `n${near[0]}`;
     }
     const cw = canvas.width;
     const ch = canvas.height;
@@ -327,7 +462,7 @@ export function initHero() {
     lastDrawKey = key;
     const iw = b0.width;
     const ih = b0.height;
-    const cover = Math.max(cw / iw, ch / ih) * (1 + DOLLY * fp);
+    const cover = Math.max(cw / iw, ch / ih) * (1 + DOLLY * (1 - fp));
     const dw = iw * cover;
     const dh = ih * cover;
     const dx = (cw - dw) * 0.5;
@@ -343,12 +478,35 @@ export function initHero() {
     if (!hero.classList.contains('is-ready')) hero.classList.add('is-ready');
   };
 
+  // One-way adaptation: if frames take too long while the visitor scrubs, drop the blend and
+  // move to the lighter frame set (the position is kept).
+  const slow: number[] = [];
+  let adapted = false;
+  const sample = (dt: number) => {
+    if (adapted) return;
+    slow.push(dt);
+    if (slow.length < 90) return;
+    const p95 = [...slow].sort((x, y) => x - y)[Math.floor(slow.length * 0.95)];
+    slow.length = 0;
+    if (p95 > 24) {
+      adapted = true;
+      blend = false;
+      if (!constrained) {
+        constrained = true;
+        setSource();
+        measure();
+      }
+    }
+  };
+
   const tick = (time: number) => {
     raf = 0;
     const dt = lastTime ? Math.min(64, time - lastTime) : 16;
+    if (lastTime) sample(time - lastTime);
     lastTime = time;
     const fp = readScroll();
     if (!source) return;
+    syncPaused();
     const prev = shown;
     if (shown < 0) shown = target;
     else {
@@ -356,14 +514,19 @@ export function initHero() {
       // settles quickly and exactly on the target when scrolling stops.
       const k = 1 - Math.exp(-dt / 70);
       shown += (target - shown) * k;
-      if (Math.abs(target - shown) < 0.01) shown = target;
+      if (Math.abs(target - shown) < 0.02) shown = target;
     }
     source.current = shown;
-    source.ensureDecoded(shown >= prev ? 1 : -1);
+    source.direction = shown >= prev ? 1 : -1;
+    source.ensureDecoded(source.direction);
     source.pump();
-    const fpShown = degraded ? fp : clamp(shown / Math.max(1, source.tier.count - 1));
+    const last = source.tier.count - 1;
+    const fpShown = degraded ? fp : clamp(shown / Math.max(1, last));
     updateChrome(fpShown);
     draw(shown, fpShown);
+    if (fp > 0.5) requestStill();
+    hero.classList.toggle('is-held-start', shown === 0 && target === 0);
+    hero.classList.toggle('is-held-end', shown === last && target === last);
     if (shown !== target) request();
     else lastTime = 0;
   };
@@ -373,7 +536,8 @@ export function initHero() {
   }
 
   // Frames must not compete with the critical path (poster image, fonts, CSS):
-  // start downloading once the page has loaded and is idle, or as soon as the visitor scrolls.
+  // the small coarse pass starts once the page has loaded and is idle; the windowed
+  // fetching starts when the visitor scrolls.
   let started = false;
   let engaged = false;
   const engage = () => {
@@ -389,10 +553,11 @@ export function initHero() {
     setSource();
     measure();
     readScroll();
+    // opened mid-hero (restored scroll position, back navigation): no scroll event may follow,
+    // so load the frames around this position straight away
+    if (progress > 0) engage();
     shown = -1;
     request();
-    // Fetch the full sequence once the visitor scrolls; on fast connections also after a short pause.
-    if (!constrained) window.setTimeout(engage, 3500);
   };
   const whenIdle = () => {
     const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
@@ -439,7 +604,7 @@ export function initHero() {
   const io = new IntersectionObserver(
     ([entry]) => {
       visible = entry.isIntersecting;
-      if (source) source.paused = !visible || document.hidden;
+      syncPaused();
       if (visible) {
         source?.pump();
         request();
@@ -451,13 +616,17 @@ export function initHero() {
 
   document.addEventListener('visibilitychange', () => {
     if (!source) return;
-    source.paused = document.hidden || !visible;
+    syncPaused();
     if (!source.paused) {
       source.pump();
       request();
     }
   });
 
+  window.addEventListener('pagehide', () => {
+    source?.abort();
+    retired?.abort();
+  });
   window.addEventListener('pageshow', (e) => {
     if ((e as PageTransitionEvent).persisted) {
       measure();
@@ -468,7 +637,9 @@ export function initHero() {
   reduce.addEventListener('change', () => {
     if (reduce.matches) {
       source?.dispose();
+      retired?.dispose();
       source = null;
+      retired = null;
     }
   });
 }
