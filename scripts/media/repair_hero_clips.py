@@ -39,16 +39,19 @@ def read(path):
 
 
 def write(path, frames):
-    """Encode an iterable of float frames, streaming them to ffmpeg."""
+    """Encode an iterable of float frames, streaming them to ffmpeg. 4:4:4 with accurate rounding:
+    the default RGB→4:2:0 conversion darkens every pixel by ~2 levels, which would show as a step
+    where a repaired clip meets an untouched one; this keeps the round trip within ~0.3 levels."""
     enc = None
     count = 0
     for f in frames:
         if enc is None:
             h, w = f.shape[:2]
             enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24',
-                                    '-s', f'{w}x{h}', '-r', '24', '-i', '-', '-c:v', 'libx264', '-preset', 'slow',
-                                    '-crf', '12', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', path],
-                                   stdin=subprocess.PIPE)
+                                    '-s', f'{w}x{h}', '-r', '24', '-i', '-',
+                                    '-sws_flags', 'accurate_rnd+full_chroma_int+bitexact', '-c:v', 'libx264',
+                                    '-preset', 'slow', '-crf', '12', '-pix_fmt', 'yuv444p', '-movflags', '+faststart',
+                                    path], stdin=subprocess.PIPE)
         enc.stdin.write(np.clip(f, 0, 255).astype(np.uint8).tobytes())
         count += 1
     enc.stdin.close()
