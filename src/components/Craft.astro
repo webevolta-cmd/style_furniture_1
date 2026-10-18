@@ -1,6 +1,6 @@
 ---
 import Picture from './Picture.astro';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -12,7 +12,7 @@ const imgs = ['craft-fabric', 'craft-fronts', 'craft-forms', 'craft-modules'] as
 <section class="section craft" id="craft" aria-labelledby="craft-title">
   <div class="container">
     <div class="section-head reveal">
-      <p class="eyebrow">{d.craft.eyebrow}</p>
+      <p class="eyebrow">{caps(d.craft.eyebrow)}</p>
       <h2 id="craft-title">{d.craft.title}</h2>
     </div>
     <ul class="craft__grid">

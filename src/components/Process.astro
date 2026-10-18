@@ -1,6 +1,6 @@
 ---
 import Picture from './Picture.astro';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -16,7 +16,7 @@ const photos = [
 <section class="section section--night process" id="process" aria-labelledby="process-title">
   <div class="container">
     <div class="section-head reveal">
-      <p class="eyebrow">{d.process.eyebrow}</p>
+      <p class="eyebrow">{caps(d.process.eyebrow)}</p>
       <h2 id="process-title">{d.process.title}</h2>
     </div>
     <ol class="process__list">
@@ -26,7 +26,7 @@ const photos = [
             <span class="process__num">{String(i + 1).padStart(2, '0')}</span>
             <h3>{s.title}</h3>
             <p>{s.text}</p>
-            {s.free && <span class="badge badge--gold">{d.process.free}</span>}
+            {s.free && <span class="badge badge--gold">{caps(d.process.free)}</span>}
           </li>
         ))
       }

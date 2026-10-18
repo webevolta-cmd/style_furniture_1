@@ -2,7 +2,7 @@
 import Picture from './Picture.astro';
 import Icon from './Icon.astro';
 import { categories } from '../data/furniture';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -13,7 +13,7 @@ const d = t(lang);
 <section class="section furniture" id="furniture" aria-labelledby="furniture-title">
   <div class="container">
     <div class="section-head reveal">
-      <p class="eyebrow">{d.furniture.eyebrow}</p>
+      <p class="eyebrow">{caps(d.furniture.eyebrow)}</p>
       <h2 id="furniture-title">{d.furniture.title}</h2>
       <p>{d.furniture.lead}</p>
     </div>
@@ -30,7 +30,7 @@ const d = t(lang);
                   alt={copy.alt}
                   sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
                 />
-                {c.visualization && <span class="badge badge--soft card__badge">{d.furniture.visualization}</span>}
+                {c.visualization && <span class="badge badge--soft card__badge">{caps(d.furniture.visualization)}</span>}
               </div>
               <div class="card__body">
                 <h3>{copy.title}</h3>

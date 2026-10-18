@@ -2,7 +2,7 @@
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 import { furnitureTypes } from '../data/furniture';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -34,7 +34,7 @@ const clientText = {
 <section class="section inquiry" id="request" aria-labelledby="request-title">
   <div class="container inquiry__grid">
     <div class="inquiry__intro">
-      <p class="eyebrow reveal">{f.eyebrow}</p>
+      <p class="eyebrow reveal">{caps(f.eyebrow)}</p>
       <h2 id="request-title" class="reveal">{f.title}</h2>
       <p class="inquiry__lead reveal">
         {f.lead}

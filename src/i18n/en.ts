@@ -6,7 +6,7 @@ const en: Dict = {
     locale: 'en_US',
     title: 'Style Furniture — Custom-Made Furniture in Yerevan',
     description:
-      'Beds, sofas, armchairs, kitchens, wardrobes, cabinets and any other furniture made to order in your color, size and design. Free consultation, measurement and installation. Call 033 26 33 66.',
+      'Custom-made beds, sofas, kitchens and wardrobes in Yerevan, in your size and color. Free consultation, measurement and installation: 033 26 33 66.',
     ogAlt: 'Style Furniture — a bedroom with a layered upholstered headboard bed and a built-in wardrobe',
   },
 
@@ -177,7 +177,7 @@ const en: Dict = {
     photos: {
       fabrics: 'Fabric samples and a finished sofa',
       fabricsAlt: 'A sofa and a fabric sample book from which the fabric for an order is chosen',
-      build: 'A bed frame before the mattress goes in',
+      build: 'A bed frame before the mattress goes\u00A0in',
       buildAlt: 'The frame of a layered upholstered headboard bed with wooden slats',
       installed: 'Armchairs, installed',
       installedAlt: 'Three velvet armchairs installed in a medical center waiting area',
@@ -230,7 +230,7 @@ const en: Dict = {
       clinic: 'Armchairs for a medical center waiting area',
       livingSofa: 'Modular corner sofa in a living room',
       lounge: 'Modular sofa and ottoman',
-      bedFrame: 'Layered-headboard bed, before the mattress goes in',
+      bedFrame: 'Layered-headboard bed, before the mattress goes\u00A0in',
       armchairSofa: 'Velvet armchair and rounded sofa',
       bedroom: 'Bedroom with a layered upholstered headboard bed',
     },

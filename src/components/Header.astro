@@ -187,6 +187,15 @@ const links = [
       background-color 0.2s var(--ease),
       color 0.2s var(--ease);
   }
+  /* 34 px pill, 44 px touch target */
+  .lang__link {
+    position: relative;
+  }
+  .lang__link::after {
+    content: '';
+    position: absolute;
+    inset: -5px 0;
+  }
   .lang__link[aria-current='true'] {
     background: var(--ink);
     color: var(--paper);
@@ -271,6 +280,10 @@ const links = [
   @media (max-width: 1180px) {
     .header__phone span {
       display: none;
+    }
+    .header__phone {
+      min-width: 44px;
+      justify-content: center;
     }
   }
   @media (max-width: 1060px) {

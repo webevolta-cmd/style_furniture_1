@@ -1,7 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { configProducts } from '../data/furniture';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -32,14 +32,14 @@ const clientData = configProducts.map((p) => ({
 <section class="section section--sand config" id="colors" aria-labelledby="colors-title">
   <div class="container">
     <div class="section-head reveal">
-      <p class="eyebrow">{d.configurator.eyebrow}</p>
+      <p class="eyebrow">{caps(d.configurator.eyebrow)}</p>
       <h2 id="colors-title">{d.configurator.title}</h2>
       <p>{d.configurator.lead}</p>
     </div>
 
     <div class="config__layout" data-config data-products={JSON.stringify(clientData)} data-sizes={sizes}>
       <fieldset class="config__products">
-        <legend class="config__label">{d.configurator.productGroup}</legend>
+        <legend class="config__label">{caps(d.configurator.productGroup)}</legend>
         <div class="segmented">
           {
             configProducts.map((p, i) => (
@@ -69,9 +69,9 @@ const clientData = configProducts.map((p) => ({
           />
           <img class="config__img config__img--next" data-config-next alt="" aria-hidden="true" />
           <figcaption class="config__caption">
-            <span class="badge badge--soft">{d.configurator.previewNote}</span>
-            <span class="badge badge--soft config__other-flag" data-config-other-flag hidden>{d.configurator.otherNote}</span>
-            <span class="badge badge--soft config__other-flag" data-config-error role="status" hidden>{d.configurator.loadError}</span>
+            <span class="badge badge--soft">{caps(d.configurator.previewNote)}</span>
+            <span class="badge badge--soft config__other-flag" data-config-other-flag hidden>{caps(d.configurator.otherNote)}</span>
+            <span class="badge badge--soft config__other-flag" data-config-error role="status" hidden>{caps(d.configurator.loadError)}</span>
           </figcaption>
           <span class="config__spinner" data-config-spinner aria-hidden="true"></span>
         </figure>
@@ -80,7 +80,7 @@ const clientData = configProducts.map((p) => ({
           configProducts.map((p, i) => (
             <fieldset class="swatches" data-swatches={p.id} hidden={i !== 0}>
               <legend class="config__label">
-                {d.configurator.swatchGroup} — {p.name[lang]}
+                {caps(`${d.configurator.swatchGroup} — ${p.name[lang]}`)}
               </legend>
               <div class="swatches__list">
                 {p.finishes.map((f) => (

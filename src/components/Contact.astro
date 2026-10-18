@@ -1,7 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { business } from '../data/business';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -28,12 +28,12 @@ const d = t(lang);
     <div class="contact__grid">
       <div class="contact__item reveal">
         <span class="contact__icon"><Icon name="phone" /></span>
-        <p class="contact__label">{d.contact.phoneLabel}</p>
+        <p class="contact__label">{caps(d.contact.phoneLabel)}</p>
         <a class="contact__value" href={`tel:${business.phone.e164}`}>{business.phone.displayIntl}</a>
       </div>
       <div class="contact__item reveal" style="--delay:0.07s">
         <span class="contact__icon"><Icon name="instagram" /></span>
-        <p class="contact__label">{d.contact.instagramLabel}</p>
+        <p class="contact__label">{caps(d.contact.instagramLabel)}</p>
         <a class="contact__value" href={business.instagram.url} target="_blank" rel="noopener">
           @{business.instagram.handle}
           <span class="visually-hidden">{d.a11y.newTab}</span>
@@ -45,7 +45,7 @@ const d = t(lang);
       </div>
       <div class="contact__item reveal" style="--delay:0.14s">
         <span class="contact__icon"><Icon name="pin" /></span>
-        <p class="contact__label">{d.contact.locationLabel}</p>
+        <p class="contact__label">{caps(d.contact.locationLabel)}</p>
         <p class="contact__value">{business.locality[lang]}</p>
       </div>
     </div>
@@ -84,6 +84,7 @@ const d = t(lang);
     display: grid;
     gap: 0.35rem;
     justify-items: start;
+    align-content: start; /* labels and values line up across the three columns */
   }
   .contact__icon {
     display: grid;
@@ -113,6 +114,12 @@ const d = t(lang);
     font-size: var(--step-3);
     line-height: 1.15;
     text-decoration: none;
+  }
+  a.contact__value,
+  .contact__sub {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
   a.contact__value:hover {
     color: var(--gold-light);

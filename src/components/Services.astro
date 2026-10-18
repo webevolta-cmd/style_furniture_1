@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -12,7 +12,7 @@ const icons = ['chat', 'ruler', 'tools'] as const;
 <section class="section section--tight services" id="services" aria-labelledby="services-title">
   <div class="container">
     <div class="services__head reveal">
-      <p class="eyebrow">{d.services.eyebrow}</p>
+      <p class="eyebrow">{caps(d.services.eyebrow)}</p>
       <h2 id="services-title">{d.services.title}</h2>
       <p>{d.services.lead}</p>
     </div>
@@ -23,7 +23,7 @@ const icons = ['chat', 'ruler', 'tools'] as const;
             <span class="services__icon">
               <Icon name={icons[i]} />
             </span>
-            <span class="badge badge--gold">{d.process.free}</span>
+            <span class="badge badge--gold">{caps(d.process.free)}</span>
             <h3>{item.title}</h3>
             <p>{item.text}</p>
           </li>

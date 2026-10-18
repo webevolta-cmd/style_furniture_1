@@ -3,13 +3,15 @@
  * pre-rendered frame sequence (bare room → finished bedroom) drawn on a canvas.
  *
  * - Deterministic: the same scroll position always shows the same frame; scrolling back
- *   reverses the sequence. No autoplay. At rest the canvas shows one whole frame.
+ *   reverses the sequence. No autoplay. Only whole frames are drawn (no blending).
  * - Bounded memory and bandwidth: a small coarse pass is fetched after load (so any position
  *   has a nearby frame); after the visitor starts scrolling, only a window of frames around
  *   the current position is fetched. Compressed blobs and decoded ImageBitmaps are both
  *   LRU-capped. Work pauses when the hero is off-screen or the tab is hidden.
  * - The held bare room and the held finished room are shown as full-resolution stills.
- * - Devices that cannot keep up while scrubbing switch (once) to the lighter frame set.
+ * - Slow connections (measured on the first fetches) and devices that cannot keep up while
+ *   scrubbing switch (once) to the lighter frame set.
+ * - The stage label, progress and data-frame always describe the frame actually on screen.
  */
 
 interface TierInfo {
@@ -50,6 +52,9 @@ class FrameSource {
   direction = 1;
   onDecoded: () => void = () => {};
   onFatal: () => void = () => {};
+  /** Called once with the measured throughput (bytes/ms) of the first fetches. */
+  onSpeed: (bytesPerMs: number) => void = () => {};
+  private speed = { n: 0, bytes: 0, start: Infinity, end: 0 };
 
   constructor(
     readonly dir: string,
@@ -83,14 +88,19 @@ class FrameSource {
       }
     }
     if (best >= 0 || this.coarseOnly) return best;
-    // sliding window around the current position, biased in the scroll direction
-    const lo = Math.max(0, c - (this.direction >= 0 ? BEHIND : AHEAD));
-    const hi = Math.min(this.tier.count - 1, c + (this.direction >= 0 ? AHEAD : BEHIND));
-    for (let d = 0; d <= Math.max(c - lo, hi - c); d++) {
-      const fwd = c + d * (this.direction >= 0 ? 1 : -1);
-      const back = c - d * (this.direction >= 0 ? 1 : -1);
-      if (fwd >= lo && fwd <= hi && this.state[fwd] === 0) return fwd;
-      if (back >= lo && back <= hi && this.state[back] === 0) return back;
+    // Sliding window around the current position, biased in the scroll direction. The two
+    // nearest frames come first, then every 4th and every 2nd frame of the window, then the
+    // rest: on a slow connection a fast scroll still gets evenly spaced frames to show.
+    const dir = this.direction >= 0 ? 1 : -1;
+    const lo = Math.max(0, c - (dir > 0 ? BEHIND : AHEAD));
+    const hi = Math.min(this.tier.count - 1, c + (dir > 0 ? AHEAD : BEHIND));
+    for (const [reach, stride] of [[2, 1], [AHEAD, 4], [AHEAD, 2], [AHEAD, 1]]) {
+      for (let d = 0; d <= Math.min(reach, Math.max(c - lo, hi - c)); d++) {
+        const fwd = c + d * dir;
+        const back = c - d * dir;
+        if (fwd >= lo && fwd <= hi && fwd % stride === 0 && this.state[fwd] === 0) return fwd;
+        if (back >= lo && back <= hi && back % stride === 0 && this.state[back] === 0) return back;
+      }
     }
     return -1;
   }
@@ -107,10 +117,12 @@ class FrameSource {
     this.state[k] = 1;
     this.inflight++;
     try {
+      const t0 = performance.now();
       const res = await fetch(this.url(k), { signal: this.aborter.signal });
       if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
       if (this.disposed) return;
+      this.measureSpeed(blob.size, t0, performance.now());
       this.blobs[k] = blob;
       this.state[k] = 2;
       this.trimBlobs();
@@ -136,6 +148,17 @@ class FrameSource {
       this.inflight--;
       this.pump();
     }
+  }
+
+  /** Throughput of the first 8 fetches (the coarse pass: back-to-back, several in parallel). */
+  private measureSpeed(bytes: number, t0: number, t1: number) {
+    const m = this.speed;
+    if (m.n >= 8) return;
+    m.n++;
+    m.bytes += bytes;
+    m.start = Math.min(m.start, t0);
+    m.end = Math.max(m.end, t1);
+    if (m.n === 8) this.onSpeed(m.bytes / Math.max(1, m.end - m.start));
   }
 
   /** Drop compressed frames far from the current position (re-fetched from HTTP cache if needed). */
@@ -249,12 +272,13 @@ class FrameSource {
 
 function connectionIsConstrained() {
   const nav = navigator as Navigator & {
-    connection?: { saveData?: boolean; effectiveType?: string };
+    connection?: { saveData?: boolean; effectiveType?: string; downlink?: number };
     deviceMemory?: number;
   };
   const c = nav.connection;
   if (c?.saveData) return true;
   if (c?.effectiveType && /(^|-)2g|3g/.test(c.effectiveType)) return true;
+  if (c?.downlink && c.downlink < 2) return true; // Mbit/s, measured by the browser
   if (nav.deviceMemory && nav.deviceMemory <= 2) return true;
   if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) return true;
   return false;
@@ -262,9 +286,11 @@ function connectionIsConstrained() {
 
 export function initHero() {
   const hero = document.querySelector<HTMLElement>('[data-hero]');
-  if (!hero) return;
+  if (!hero || !('createImageBitmap' in window)) return;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (reduce.matches || !('createImageBitmap' in window)) return;
+  // With reduced motion the CSS shows the finished room as a still and nothing below runs;
+  // the preference can change while the page is open (handled at the end).
+  let off = reduce.matches;
 
   const stage = hero.querySelector<HTMLElement>('[data-hero-stage]')!;
   const canvas = hero.querySelector<HTMLCanvasElement>('[data-hero-canvas]')!;
@@ -292,18 +318,40 @@ export function initHero() {
   let top = 0;
   let travel = 1;
   let target = 0; // target frame (whole frame index in tier space)
-  let shown = -1; // currently displayed frame position (eases toward target)
+  let shown = -1; // position easing toward the target (frame index, fractional while moving)
+  let drawnIndex = 0; // frame actually on screen (tier space)
+  let drawnFrac = 0; // the same as a fraction of the sequence
+  let behindSince = 0;
+  let catchTimer = 0;
   let progress = 0;
   let lastStage = -1;
   let raf = 0;
   let lastTime = 0;
   let visible = true;
   let lastDrawKey = '';
-  let blend = true;
 
   const pickTier = () => {
     if (portraitMq.matches) return constrained ? 'mobile-lite' : 'mobile';
     return constrained || window.innerWidth < 900 ? 'desktop-lite' : 'desktop';
+  };
+
+  const showFallback = () => {
+    if (degraded) return;
+    // Media failure: keep the page usable; the finished room replaces the bare room as soon
+    // as the visitor scrolls into the assembly.
+    degraded = true;
+    hero.classList.add('is-degraded');
+    const img = new Image();
+    img.className = 'hero__fallback';
+    img.alt = '';
+    img.decoding = 'async';
+    img.sizes = '100vw';
+    const set = portraitMq.matches
+      ? still?.querySelector<HTMLSourceElement>('source[type="image/webp"][media]')?.dataset.srcset
+      : stillImg?.dataset.srcset;
+    if (set) img.srcset = set;
+    img.src = portraitMq.matches ? '/media/hero/mobile-end-720.webp' : '/media/hero/desktop-end-1600.webp';
+    canvas.after(img);
   };
 
   const setSource = () => {
@@ -319,17 +367,14 @@ export function initHero() {
     const isDesktop = name.startsWith('desktop');
     source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12, isDesktop ? 72 : 84);
     source.onDecoded = () => request();
-    source.onFatal = () => {
-      if (degraded) return;
-      // Media failure: keep the page usable and show the finished room fading in with progress.
-      degraded = true;
-      hero.classList.add('is-degraded');
-      const img = new Image();
-      img.className = 'hero__fallback';
-      img.alt = '';
-      img.decoding = 'async';
-      img.src = portraitMq.matches ? '/media/hero/mobile-end-720.webp' : '/media/hero/desktop-end-1600.webp';
-      canvas.after(img);
+    source.onFatal = showFallback;
+    // Below ~0.8 MB/s the full set can't keep up with normal scrolling: use the lighter one.
+    source.onSpeed = (bytesPerMs) => {
+      if (constrained || bytesPerMs >= 800) return;
+      constrained = true;
+      setSource();
+      measure();
+      request();
     };
     source.coarseOnly = !engaged;
     hero.dataset.tier = name;
@@ -371,8 +416,6 @@ export function initHero() {
   const readScroll = () => {
     progress = clamp((window.scrollY - top) / travel);
     const fp = clamp((progress - HOLD_START) / (ASSEMBLY_END - HOLD_START));
-    // whole frames only: easing between them gives smooth motion, and at rest the picture is
-    // always one real frame (never a double exposure of two neighbours)
     if (source) target = Math.round(fp * (source.tier.count - 1));
     return fp;
   };
@@ -390,18 +433,20 @@ export function initHero() {
     });
     return st;
   };
-  const updateChrome = (fp: number) => {
+  /** Text and indicators follow the frame on screen (`onScreen`), not the scroll target. */
+  const updateChrome = (onScreen: number) => {
+    const held = hero.classList.contains('is-held-end') && !!still?.classList.contains('is-loaded');
+    const done = held ? 1 : smooth(0.9, 1, onScreen);
     setVar(hero, 'intro', '--intro', (1 - smooth(0.025, 0.11, progress)).toFixed(3));
     setVar(hero, 'chrome', '--chrome', smooth(0.03, 0.09, progress).toFixed(3));
-    setVar(hero, 'final', '--final', smooth(0.875, 0.94, progress).toFixed(3));
-    if (degraded) setVar(hero, 'fp', '--fp', fp.toFixed(3));
+    setVar(hero, 'final', '--final', (smooth(0.875, 0.94, progress) * done).toFixed(3));
     const n = stageStarts.length || 5;
     ticks.forEach((t, i) => {
       const a = stageStarts[i] ?? i / n;
       const b = stageStarts[i + 1] ?? 1;
-      setVar(t, `t${i}`, '--fill', clamp((fp - a) / Math.max(1e-6, b - a)).toFixed(2));
+      setVar(t, `t${i}`, '--fill', clamp((onScreen - a) / Math.max(1e-6, b - a)).toFixed(2));
     });
-    const st = Math.min(n - 1, stageOf(fp));
+    const st = Math.min(n - 1, stageOf(onScreen));
     if (st !== lastStage) {
       lastStage = st;
       stageNum.textContent = String(st + 1).padStart(2, '0');
@@ -422,18 +467,13 @@ export function initHero() {
     else stillImg.addEventListener('load', done, { once: true });
   };
 
+  /** Draws the frame at `pos` (or the closest one already decoded) as one whole frame. */
   const draw = (pos: number, fp: number) => {
     if (!source || degraded) return;
     const count = source.tier.count;
-    const i0 = clamp(Math.floor(pos), 0, count - 1);
-    const i1 = Math.min(i0 + 1, count - 1);
-    const a = pos - i0;
+    const i0 = clamp(Math.round(pos), 0, count - 1);
     let b0 = source.bitmap(i0);
-    // Blend neighbouring frames only while easing into the target (never at rest, where the
-    // position is a whole frame, and not during fast scrubbing, where it is imperceptible).
-    const settling = Math.abs(target - pos) < 1.5;
-    let b1 = blend && settling && a > 0.02 ? source.bitmap(i1) : undefined;
-    let key = `${i0}:${b1 ? a.toFixed(2) : 0}`;
+    let index = i0;
     if (b0 && retired) {
       retired.dispose();
       retired = null;
@@ -448,16 +488,15 @@ export function initHero() {
       if (!near && !old) return;
       if (old && dOld < dNew) {
         b0 = old[1];
-        key = `r${old[0]}`;
+        index = Math.round(old[0] / rs);
       } else {
         b0 = near![1];
-        key = `n${near![0]}`;
+        index = near![0];
       }
-      b1 = undefined;
     }
     const cw = canvas.width;
     const ch = canvas.height;
-    key += `|${cw}x${ch}|${fp.toFixed(3)}`;
+    const key = `${index}:${b0.width}|${cw}x${ch}|${fp.toFixed(3)}`;
     if (key === lastDrawKey) return;
     lastDrawKey = key;
     const iw = b0.width;
@@ -465,21 +504,15 @@ export function initHero() {
     const cover = Math.max(cw / iw, ch / ih) * (1 + DOLLY * (1 - fp));
     const dw = iw * cover;
     const dh = ih * cover;
-    const dx = (cw - dw) * 0.5;
-    const dy = (ch - dh) * FOCUS_Y;
-    ctx.globalAlpha = 1;
-    ctx.drawImage(b0, dx, dy, dw, dh);
-    if (b1) {
-      ctx.globalAlpha = a;
-      ctx.drawImage(b1, dx, dy, dw, dh);
-      ctx.globalAlpha = 1;
-    }
-    hero.dataset.frame = String(i0);
+    ctx.drawImage(b0, (cw - dw) * 0.5, (ch - dh) * FOCUS_Y, dw, dh);
+    drawnIndex = index;
+    drawnFrac = index / Math.max(1, count - 1);
+    hero.dataset.frame = String(index);
     if (!hero.classList.contains('is-ready')) hero.classList.add('is-ready');
   };
 
-  // One-way adaptation: if frames take too long while the visitor scrubs, drop the blend and
-  // move to the lighter frame set (the position is kept).
+  // One-way adaptation: if frames take too long while the visitor scrubs, move to the lighter
+  // frame set (the position is kept).
   const slow: number[] = [];
   let adapted = false;
   const sample = (dt: number) => {
@@ -490,7 +523,6 @@ export function initHero() {
     slow.length = 0;
     if (p95 > 24) {
       adapted = true;
-      blend = false;
       if (!constrained) {
         constrained = true;
         setSource();
@@ -501,6 +533,7 @@ export function initHero() {
 
   const tick = (time: number) => {
     raf = 0;
+    if (off) return;
     const dt = lastTime ? Math.min(64, time - lastTime) : 16;
     if (lastTime) sample(time - lastTime);
     lastTime = time;
@@ -521,18 +554,30 @@ export function initHero() {
     source.ensureDecoded(source.direction);
     source.pump();
     const last = source.tier.count - 1;
-    const fpShown = degraded ? fp : clamp(shown / Math.max(1, last));
-    updateChrome(fpShown);
-    draw(shown, fpShown);
+    draw(shown, clamp(shown / Math.max(1, last)));
     if (fp > 0.5) requestStill();
     hero.classList.toggle('is-held-start', shown === 0 && target === 0);
     hero.classList.toggle('is-held-end', shown === last && target === last);
+    hero.classList.toggle('is-past-start', fp > 0);
+    // a subtle cue while the frame on screen lags the scroll position (slow connection)
+    const behind = !degraded && Math.abs(drawnIndex - target) > 3;
+    if (!behind) behindSince = 0;
+    else if (!behindSince) behindSince = time;
+    hero.classList.toggle('is-catching-up', behind && time - behindSince > 250);
+    updateChrome(degraded ? fp : drawnFrac);
     if (shown !== target) request();
     else lastTime = 0;
+    // arriving frames re-tick through onDecoded; this only turns the loading cue on in time
+    if (behind && !catchTimer) {
+      catchTimer = window.setTimeout(() => {
+        catchTimer = 0;
+        request();
+      }, 300);
+    }
   };
 
   function request() {
-    if (!raf && visible) raf = requestAnimationFrame(tick);
+    if (!raf && visible && !off) raf = requestAnimationFrame(tick);
   }
 
   // Frames must not compete with the critical path (poster image, fonts, CSS):
@@ -548,7 +593,7 @@ export function initHero() {
     }
   };
   const begin = () => {
-    if (started) return;
+    if (started || off) return;
     started = true;
     setSource();
     measure();
@@ -571,6 +616,7 @@ export function initHero() {
 
   // Chrome (text, stage indicator) follows scroll even before frames arrive.
   const onScroll = () => {
+    if (off) return;
     if (!started) begin();
     if (!engaged) engage();
     request();
@@ -583,10 +629,11 @@ export function initHero() {
   let resizeTimer = 0;
   let anchor: { progress: number; top: number; travel: number } | null = null;
   const onResize = () => {
+    if (off) return;
     if (started && !anchor) anchor = { progress, top, travel };
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
-      if (!started) return;
+      if (!started || off) return;
       setSource();
       measure();
       const a = anchor;
@@ -634,12 +681,29 @@ export function initHero() {
     }
   });
 
+  // Reduced motion switched on: stop and release everything (CSS shows the finished room).
+  // Switched off: start the animation from the current scroll position.
   reduce.addEventListener('change', () => {
-    if (reduce.matches) {
+    off = reduce.matches;
+    if (off) {
+      cancelAnimationFrame(raf);
+      raf = 0;
       source?.dispose();
       retired?.dispose();
       source = null;
       retired = null;
+      hero.classList.remove('is-ready', 'is-held-start', 'is-held-end', 'is-past-start', 'is-catching-up');
+      return;
     }
+    if (!started) {
+      begin();
+      return;
+    }
+    setSource();
+    measure();
+    readScroll();
+    if (progress > 0) engage();
+    shown = -1;
+    request();
   });
 }

@@ -1,6 +1,6 @@
 ---
 import Picture from './Picture.astro';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -16,7 +16,7 @@ const d = t(lang);
       </div>
     </div>
     <div class="about__copy">
-      <p class="eyebrow reveal">{d.about.eyebrow}</p>
+      <p class="eyebrow reveal">{caps(d.about.eyebrow)}</p>
       <h2 id="about-title" class="reveal">{d.about.title}</h2>
       <p class="about__lead reveal">{d.about.p1}</p>
       <p class="reveal">{d.about.p2}</p>
@@ -61,7 +61,7 @@ const d = t(lang);
   .about__copy h2:lang(hy) {
     font-size: min(var(--step-4), 9cqi);
   }
-  .about__copy > p {
+  .about__copy > p:not(.eyebrow) {
     color: var(--ink-2);
   }
   .about__lead {

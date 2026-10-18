@@ -62,6 +62,15 @@ function initHeader() {
       setOpen(false);
       btn.focus();
     }
+    // While the menu covers the page, Tab cycles between the menu button and the menu's links
+    // instead of moving to page content hidden behind it.
+    if (e.key === 'Tab' && !menu.hidden) {
+      const items = [btn, ...menu.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')];
+      const i = items.indexOf(document.activeElement as HTMLElement);
+      if (i === -1) return;
+      e.preventDefault();
+      items[(i + (e.shiftKey ? -1 : 1) + items.length) % items.length].focus();
+    }
   });
   document.addEventListener('click', (e) => {
     if (!menu.hidden && !header.contains(e.target as Node)) setOpen(false);

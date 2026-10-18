@@ -2,7 +2,7 @@
 import Picture from './Picture.astro';
 import Icon from './Icon.astro';
 import { business } from '../data/business';
-import { t, type Lang } from '../i18n';
+import { caps, t, type Lang } from '../i18n';
 interface Props {
   lang: Lang;
 }
@@ -22,7 +22,7 @@ const items = [
   <div class="container">
     <div class="projects__head">
       <div class="section-head reveal">
-        <p class="eyebrow">{d.projects.eyebrow}</p>
+        <p class="eyebrow">{caps(d.projects.eyebrow)}</p>
         <h2 id="projects-title">{d.projects.title}</h2>
         <p>{d.projects.lead}</p>
       </div>

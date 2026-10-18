@@ -303,12 +303,12 @@ ol {
   font-size: var(--step-4);
 }
 
-.section-head p {
+.section-head p:not(.eyebrow) {
   font-size: var(--step-1);
   color: var(--ink-2);
 }
 
-.section--night .section-head p {
+.section--night .section-head p:not(.eyebrow) {
   color: var(--on-night-2);
 }
 
@@ -418,6 +418,17 @@ ol {
   text-decoration: none;
   border-bottom: 1px solid currentColor;
   padding-bottom: 2px;
+}
+
+.link-arrow {
+  position: relative;
+}
+
+/* the underline stays tight to the text; the touch target is 44 px tall */
+.link-arrow::after {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
 }
 
 .link-arrow svg {
