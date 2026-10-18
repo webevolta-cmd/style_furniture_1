@@ -6,7 +6,7 @@ const en: Dict = {
     locale: 'en_US',
     title: 'Style Furniture — Custom-Made Furniture in Yerevan',
     description:
-      'Beds, sofas, armchairs, kitchens, wardrobes and any other furniture made to order in your color, size and design. Free consultation, measurement and installation. Call 033 26 33 66.',
+      'Beds, sofas, armchairs, kitchens, wardrobes, cabinets and any other furniture made to order in your color, size and design. Free consultation, measurement and installation. Call 033 26 33 66.',
     ogAlt: 'Style Furniture — a bedroom with a layered upholstered headboard bed and a built-in wardrobe',
   },
 
@@ -36,6 +36,7 @@ const en: Dict = {
     consultation: 'Free consultation',
     measurement: 'Free measurement',
     installation: 'Free installation',
+    line: 'Free consultation, measurement and installation',
   },
 
   hero: {
@@ -46,13 +47,14 @@ const en: Dict = {
     ctaCall: 'Call',
     scrollHint: 'Scroll to watch the room come together',
     skip: 'Skip the animation',
+    skipShort: 'Skip',
     stageLabel: 'Stage',
     stages: [
       'MDF wall panels',
       'Wardrobe carcass',
       'Doors & bed base',
-      'Headboard & bedside tables',
-      'Finishing details',
+      'Headboard, bedside tables & bench',
+      'Bedding & finishing touches',
     ],
     finalTitle: 'Every detail in its place',
     finalText: 'Wardrobe, wall panels, bed and bench — one design language, made for your space.',
@@ -63,7 +65,7 @@ const en: Dict = {
   },
 
   services: {
-    eyebrow: 'On us',
+    eyebrow: 'Services',
     title: 'Three services, free of charge',
     lead: 'At Style Furniture, consultation, measurement and installation are free.',
     items: [
@@ -77,7 +79,7 @@ const en: Dict = {
       },
       {
         title: 'Free installation',
-        text: 'We install the finished furniture ourselves, with care and attention to every detail.',
+        text: 'We install your finished furniture with care and attention to every detail.',
       },
     ],
     ctaConsult: 'Request a free consultation',
@@ -88,11 +90,11 @@ const en: Dict = {
     eyebrow: 'About us',
     title: 'Comfort you can feel at first sight',
     p1: 'Style Furniture makes furniture entirely to order — kitchens, wardrobes and walk-in closets, upholstered furniture, beds and much more. Every order is approached individually, around your space, your style and your wishes.',
-    p2: 'We don’t cut corners on quality: we use quality materials, pay attention to every detail and build furniture that is meant to last for many years.',
+    p2: 'We never compromise on quality. We use quality materials, pay attention to every detail and build furniture that lasts for many years.',
     pillars: [
       { title: 'Entirely made to order', text: 'Size, color, fabric and model — your choice.' },
       { title: 'Quality materials', text: 'Furniture built to serve you for many years.' },
-      { title: 'Attention to detail', text: 'Quality you can feel in every detail.' },
+      { title: 'Attention to detail', text: 'Quality you can see in every detail.' },
     ],
     imageAlt: 'A modular corner sofa in a bright living room with large windows',
   },
@@ -117,7 +119,7 @@ const en: Dict = {
       },
       armchairs: {
         title: 'Armchairs',
-        text: 'Armchairs for homes and commercial interiors, in the fabric you choose.',
+        text: 'Armchairs for homes and public spaces, in the fabric you choose.',
         alt: 'Velvet armchairs with rounded backs in a waiting area',
       },
       kitchens: {
@@ -126,14 +128,14 @@ const en: Dict = {
         alt: 'A kitchen with oak-tone and light fronts and an island',
       },
       wardrobes: {
-        title: 'Wardrobes & walk-in closets',
-        text: 'Built-in wardrobes and walk-in closets — wall to wall, floor to ceiling.',
-        alt: 'An open built-in wardrobe carcass with shelves and brass hanging rails',
+        title: 'Wardrobes, cabinets & walk-in closets',
+        text: 'Built-in and freestanding wardrobes, cabinets and walk-in closets, made to the dimensions of your space.',
+        alt: 'A built-in wardrobe with light fronts and brass handles',
       },
       other: {
         title: 'Other furniture',
         text: 'Bedside tables, benches, tables and any other piece — built to your idea.',
-        alt: 'A bouclé bench and a round bedside table with brass knobs',
+        alt: 'A bouclé bench in front of a newly installed bed',
       },
     },
     custom: {
@@ -146,10 +148,10 @@ const en: Dict = {
   configurator: {
     eyebrow: 'Colors',
     title: 'Choose your color',
-    lead: 'See how the piece changes in different colors. The shades shown are examples — you can order any other color.',
+    lead: 'See how the piece changes in different colors. The shades shown are only examples — you can order any other color.',
     productGroup: 'Choose the piece',
     swatchGroup: 'Fabric color',
-    selected: 'Selected',
+    selected: 'Your selection',
     other: 'Other color',
     otherLabel: 'Describe the color or fabric you want',
     otherPlaceholder: 'e.g. deep emerald velvet',
@@ -161,6 +163,7 @@ const en: Dict = {
     cta: 'Request this configuration',
     sizeNote: 'Need a different size or model? Add it to your request.',
     changed: 'Preview updated:',
+    loadError: 'The preview isn’t available right now — your choice is still saved.',
   },
 
   process: {
@@ -172,9 +175,17 @@ const en: Dict = {
       { title: 'Measurement', text: 'We measure your space so everything fits precisely.', free: true },
       { title: 'Design & approval', text: 'We agree on the model, dimensions, materials and colors.', free: false },
       { title: 'Production', text: 'We make your furniture from quality materials, with attention to every detail.', free: false },
-      { title: 'Installation', text: 'We install the finished furniture ourselves.', free: true },
+      { title: 'Installation', text: 'We install the finished furniture in your space.', free: true },
     ],
-    note: 'Timelines and pricing are calculated individually for each order.',
+    note: 'Price and lead time are set individually for each order.',
+    photos: {
+      fabrics: 'Fabric samples and a finished sofa',
+      fabricsAlt: 'A sofa and a fabric sample book from which the fabric for an order is chosen',
+      build: 'A bed frame before the mattress goes in',
+      buildAlt: 'The frame of a layered upholstered headboard bed with wooden slats',
+      installed: 'Armchairs, installed',
+      installedAlt: 'Three velvet armchairs installed in a medical center waiting area',
+    },
   },
 
   craft: {
@@ -182,18 +193,18 @@ const en: Dict = {
     title: 'Quality you can feel in every detail',
     items: [
       {
-        title: 'Soft fabrics',
+        title: 'Fabrics of your choice',
         text: 'Velvet, bouclé and other fabrics, chosen by you from samples.',
-        alt: 'Close-up of bouclé fabric texture on a bench',
+        alt: 'Close-up of a bouclé bench and an upholstered bed frame',
       },
       {
-        title: 'Clean fronts',
-        text: 'Kitchen and wardrobe fronts with crisp lines and comfortable handles.',
+        title: 'Crisp lines',
+        text: 'Kitchen and wardrobe fronts with crisp lines, made to your dimensions.',
         alt: 'Oak-tone kitchen fronts above a lit worktop',
       },
       {
         title: 'Soft forms',
-        text: 'Soft shapes, warm tones and minimalist design make any space more welcoming.',
+        text: 'Rounded shapes, warm tones and restrained design make any space more welcoming.',
         alt: 'Close-up of a velvet armchair’s rounded back with a green cushion',
       },
       {
@@ -207,14 +218,15 @@ const en: Dict = {
   projects: {
     eyebrow: 'Projects',
     title: 'Our work',
-    lead: 'Furniture we have made for our clients — for homes and commercial spaces.',
+    lead: 'Furniture we have made for our clients’ homes and public spaces.',
     instagram: 'More on Instagram',
     alts: {
-      kitchen: 'Photo: a long kitchen wall with light upper cabinets, oak-tone fronts, a lit worktop and an island with black bar stools',
-      clinic: 'Photo: three taupe velvet armchairs with dark green cushions along oak-tone wall panels',
-      livingSofa: 'Photo: a light grey modular corner sofa on a glossy oak floor by large balcony windows',
+      kitchen: 'A long kitchen wall with light upper cabinets, oak-tone fronts and a lit worktop, and an island with black bar stools',
+      clinic: 'Three taupe velvet armchairs with dark green cushions along oak-tone wall panels',
+      livingSofa: 'A light grey modular corner sofa on a glossy oak floor by large balcony windows',
       lounge: 'Modular sofa and ottoman in a living room',
-      bedFrame: 'Photo: the frame of the layered upholstered bed with wooden slats and the matching bench, in an apartment',
+      bedFrame: 'The frame of a layered upholstered headboard bed with wooden slats, and a bouclé bench, in an apartment',
+      armchairSofa: 'A velvet armchair and a rounded sofa, made to order',
       bedroom: 'Bedroom with a layered upholstered headboard bed, round bedside tables, a bouclé bench and a built-in wardrobe',
     },
     items: {
@@ -222,7 +234,8 @@ const en: Dict = {
       clinic: 'Armchairs for a medical center waiting area',
       livingSofa: 'Modular corner sofa in a living room',
       lounge: 'Modular sofa and ottoman',
-      bedFrame: 'The layered-headboard bed frame, before the mattress goes in',
+      bedFrame: 'Layered-headboard bed, before the mattress goes in',
+      armchairSofa: 'Velvet armchair and rounded sofa',
       bedroom: 'Bedroom with a layered upholstered headboard bed',
     },
   },
@@ -230,7 +243,7 @@ const en: Dict = {
   inquiry: {
     eyebrow: 'Request',
     title: 'Tell us about your furniture',
-    lead: 'Fill in the form and we’ll get back to you. Or simply call',
+    lead: 'Fill in the form and we’ll get back to you. You can also simply call',
     requestType: 'How can we help?',
     types: {
       consultation: 'Free consultation',
@@ -253,11 +266,11 @@ const en: Dict = {
       sofa: 'Sofa',
       armchair: 'Armchair',
       kitchen: 'Kitchen',
-      wardrobe: 'Wardrobe / walk-in closet',
+      wardrobe: 'Wardrobe / cabinet / walk-in closet',
       other: 'Other furniture',
     },
     otherType: 'What furniture?',
-    otherTypePh: 'e.g. TV unit, kids’ room',
+    otherTypePh: 'e.g. TV unit, kids’ room furniture',
     color: 'Preferred color or fabric',
     colorPh: 'e.g. sand bouclé',
     dimensions: 'Dimensions',
@@ -273,7 +286,7 @@ const en: Dict = {
     linkPh: 'https://',
     linkHint: 'Paste a link to a picture on Instagram, Pinterest or any other site. You can also send photos via Instagram Direct.',
     message: 'Message',
-    messagePh: 'Anything else we should know',
+    messagePh: 'Anything else we should know?',
     config: 'Selected configuration',
     configRemove: 'Remove the selected configuration',
     privacy: 'We’ll use your details only to contact you about your request.',
@@ -281,7 +294,7 @@ const en: Dict = {
     sending: 'Sending…',
     success: 'Thank you! Your request has been received and we’ll be in touch soon.',
     fallbackTitle: 'Online sending isn’t available right now',
-    fallbackText: 'Your request is ready. Send it in one tap:',
+    fallbackText: 'Your request is ready. Choose how to send it:',
     sendSms: 'Send by SMS',
     sendInstagram: 'Copy & open Instagram',
     copied: 'Text copied. Paste it into Instagram Direct.',
@@ -317,21 +330,21 @@ const en: Dict = {
     title: 'Get in touch',
     phoneLabel: 'Phone for orders',
     instagramLabel: 'Instagram',
-    instagramText: 'Message us on Direct',
+    instagramText: 'Message us on Instagram Direct',
     locationLabel: 'Location',
-    note: 'We arrange the date and time of your consultation and measurement by phone or on Instagram.',
+    note: 'We’ll agree on the date and time of your consultation and measurement by phone or on Instagram.',
   },
 
   final: {
-    title: 'We can create the furniture of your dreams — just for you',
+    title: 'Let’s create the furniture you’ve been dreaming of — just for you',
     cta: 'Request a free consultation',
     call: 'Call',
   },
 
   footer: {
-    tagline: 'Quality furniture in the design of your dreams',
+    tagline: 'Quality furniture in the design you’ve dreamed of',
     rights: 'All rights reserved.',
-    imagery: 'Some images and the hero animation on this site are visualizations that present our furniture designs.',
+    imagery: 'Some images and the room-furnishing animation on this site are visualizations that present our furniture designs.',
     nav: 'Page sections',
   },
 

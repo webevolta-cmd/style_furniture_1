@@ -225,17 +225,17 @@ const clientText = {
           <h3>{f.fallbackTitle}</h3>
           <p>{f.fallbackText}</p>
           <div class="form-result__actions">
-            <a class="btn btn--gold" href={`sms:${business.phone.e164}`} data-sms>
-              <Icon name="sms" />
-              {f.sendSms}
+            <a class="btn btn--gold" href={`tel:${business.phone.e164}`}>
+              <Icon name="phone" />
+              {d.a11y.call} {business.phone.display}
             </a>
             <button class="btn" type="button" data-instagram-send>
               <Icon name="instagram" />
               {f.sendInstagram}
             </button>
-            <a class="btn btn--ghost" href={`tel:${business.phone.e164}`}>
-              <Icon name="phone" />
-              {d.a11y.call} {business.phone.display}
+            <a class="btn btn--ghost" href={`sms:${business.phone.e164}`} data-sms>
+              <Icon name="sms" />
+              {f.sendSms}
             </a>
           </div>
           <label class="visually-hidden" for="f-summary">{f.summaryTitle}</label>
@@ -474,6 +474,11 @@ const clientText = {
   }
   .form-result {
     outline: none;
+  }
+  .form-result:not([hidden]) {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
   }
   .form-result__success {
     display: grid;

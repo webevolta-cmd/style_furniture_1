@@ -499,6 +499,12 @@ ol {
   background: var(--sand);
 }
 
+.media > picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .media img {
   width: 100%;
   height: 100%;

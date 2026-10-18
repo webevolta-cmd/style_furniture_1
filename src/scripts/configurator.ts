@@ -26,6 +26,7 @@ export function initConfigurator() {
   const otherFlag = root.querySelector<HTMLElement>('[data-config-other-flag]')!;
   const cta = root.querySelector<HTMLAnchorElement>('[data-config-cta]')!;
   const status = root.querySelector<HTMLElement>('[data-config-status]')!;
+  const loadError = root.querySelector<HTMLElement>('[data-config-error]')!;
   const otherLabel = root.querySelector('.swatch--other .swatch__name')?.textContent?.trim() ?? '';
 
   const state: ConfigSelection & { lastPreset: Record<string, string> } = {
@@ -49,8 +50,6 @@ export function initConfigurator() {
     const finishName = p.finishes.find((f) => f.id === finish)?.name ?? '';
     const alt = `${p.alt}: ${finishName}`;
     if (img.getAttribute('srcset') === set) return;
-    frame.style.setProperty('--ar', `${p.width}/${p.height}`);
-    frame.style.setProperty('--arn', String(p.width / p.height));
     const probe = new Image();
     probe.sizes = sizes;
     probe.srcset = set;
@@ -61,27 +60,39 @@ export function initConfigurator() {
       if (my !== token) return;
       clearTimeout(spinnerTimer);
       frame.classList.remove('is-loading');
+      loadError.hidden = true;
       if (instant) {
         img.sizes = sizes;
         img.srcset = set;
         img.alt = alt;
+        img.dataset.product = p.id;
         return;
       }
       next.sizes = sizes;
       next.srcset = set;
+      next.dataset.product = p.id;
       next.classList.add('is-visible');
       window.setTimeout(() => {
         if (my !== token) return;
         img.sizes = sizes;
         img.srcset = set;
         img.alt = alt;
+        img.dataset.product = p.id;
         // keep the overlay until the base image has the same pixels, then drop it
         img.decode().catch(() => {}).finally(() => {
           if (my === token) next.classList.remove('is-visible');
         });
       }, 360);
     };
-    probe.decode().then(done, done);
+    // A preview that can't load (offline, flaky network) never blanks the frame: the current
+    // picture stays and a short note says the choice is still kept for the inquiry.
+    const fail = () => {
+      if (my !== token) return;
+      clearTimeout(spinnerTimer);
+      frame.classList.remove('is-loading');
+      loadError.hidden = false;
+    };
+    probe.decode().then(done, () => (probe.complete && probe.naturalWidth > 0 ? done() : fail()));
   };
 
   const render = (announce = true, instant = false) => {
@@ -168,6 +179,7 @@ export function initConfigurator() {
         label: `${p.name} · ${finishName || otherLabel}`,
         product: p.id,
         finish: state.finish,
+        other: state.other,
         colorText: finishName,
       },
       focus: 'name',

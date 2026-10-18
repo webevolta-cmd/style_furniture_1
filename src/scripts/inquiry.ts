@@ -92,10 +92,26 @@ export function initInquiry() {
     otherInput.required = other;
   };
 
-  const setConfig = (label: string) => {
+  // The configuration is kept as ids so it can be re-labelled in the page language after a
+  // language switch; only text the visitor typed (a custom colour) is kept verbatim.
+  type ConfigRef = { product: string; finish: string; other?: string };
+  let configRef: ConfigRef | null = null;
+  const setConfig = (label: string, ref: ConfigRef | null = null) => {
+    configRef = label ? ref : null;
     configField.value = label;
     configChipText.textContent = label;
     configChip.hidden = !label;
+  };
+  const localizeConfig = (ref: ConfigRef) => {
+    const root = document.querySelector<HTMLElement>('[data-config]');
+    const products: { id: string; name: string; finishes: { id: string; name: string }[] }[] = JSON.parse(
+      root?.dataset.products || '[]',
+    );
+    const p = products.find((x) => x.id === ref.product);
+    if (!p) return null;
+    const otherLabel = root?.querySelector('.swatch--other .swatch__name')?.textContent?.trim() ?? '';
+    const color = ref.finish === 'other' ? ref.other?.trim() || '' : p.finishes.find((f) => f.id === ref.finish)?.name || '';
+    return { label: `${p.name} · ${color || otherLabel}`, color };
   };
 
   /* ---------- draft persistence (survives a language switch) ---------- */
@@ -103,6 +119,7 @@ export function initInquiry() {
     const data: Record<string, string> = {};
     for (const name of DRAFT_FIELDS) data[name] = val(name);
     data.colorFromConfig = colorFromConfig;
+    data.configRef = configRef ? JSON.stringify(configRef) : '';
     save(KEYS.draft, data);
   };
   const restoreDraft = () => {
@@ -115,7 +132,23 @@ export function initInquiry() {
       else (f as HTMLInputElement).value = data[name];
     }
     colorFromConfig = data.colorFromConfig || '';
-    setConfig(data.configuration || '');
+    let ref: ConfigRef | null = null;
+    try {
+      ref = data.configRef ? (JSON.parse(data.configRef) as ConfigRef) : null;
+    } catch {
+      ref = null;
+    }
+    const localized = ref && localizeConfig(ref);
+    if (ref && localized) {
+      // an auto-filled colour follows the language; a colour the visitor typed stays as typed
+      if (colorFromConfig && colorInput.value === colorFromConfig) {
+        colorInput.value = localized.color;
+        colorFromConfig = localized.color;
+      }
+      setConfig(localized.label, ref);
+    } else {
+      setConfig(data.configuration || '', ref);
+    }
   };
   restoreDraft();
   syncDependent();
@@ -146,7 +179,8 @@ export function initInquiry() {
     }
     if (detail.furniture) furnitureSelect.value = detail.furniture;
     if (detail.config !== undefined) {
-      setConfig(detail.config?.label ?? '');
+      const c0 = detail.config;
+      setConfig(c0?.label ?? '', c0 ? { product: c0.product, finish: c0.finish, other: c0.other } : null);
       const c = detail.config?.colorText ?? '';
       if (c && (!colorInput.value || colorInput.value === colorFromConfig)) {
         colorInput.value = c;

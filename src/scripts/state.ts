@@ -33,7 +33,7 @@ export interface ConfigSelection {
 export interface PrefillDetail {
   requestType?: string;
   furniture?: string;
-  config?: { label: string; product: string; finish: string; colorText: string } | null;
+  config?: { label: string; product: string; finish: string; other?: string; colorText: string } | null;
   focus?: 'name' | 'model';
 }
 

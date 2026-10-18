@@ -5,7 +5,7 @@
  * Not part of the Netlify build: outputs are committed to public/media/img and
  * public/media/config. Run manually: node scripts/media/build-images.mjs
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 
@@ -23,28 +23,34 @@ const images = {
   'cat-sofa': { src: 'photos/upscaled/living.jpg', crop: [0.25, 0.3, 1, 0.83], widths: [480, 800, 1100] },
   'cat-armchair': { src: 'photos/upscaled/clinic.jpg', crop: [0, 0.22, 1, 0.796], widths: [480, 800, 1100] },
   'cat-kitchen': { src: 'photos/original/kitchen.webp', crop: [0.3, 0, 0.833, 1], widths: [480, 800] },
-  'cat-wardrobe': { src: 'keyframes/desktop/d2.jpg', crop: [0.55, 0, 1, 1], widths: [480, 800] },
-  'cat-other': { src: 'photos/upscaled/bedroom.jpg', crop: [0.18, 0.44, 0.78, 0.864], widths: [480, 800, 1100] },
+  'cat-wardrobe': { src: 'keyframes/desktop/d5.jpg', crop: [0.55, 0, 1, 1], widths: [480, 800] },
+  'cat-other': { src: 'photos/instagram/bed-frame-DdHnM6gOBnY.jpg', crop: [0, 0.215, 0.52, 0.865], widths: [480, 560] },
   // projects
   'proj-kitchen': { src: 'photos/original/kitchen.webp', crop: [0, 0, 1, 1], widths: [640, 1000, 1536] },
   'proj-clinic': { src: 'photos/upscaled/clinic.jpg', crop: [0, 0.2, 1, 0.814], widths: [480, 800, 1200] },
   'proj-living': { src: 'photos/upscaled/living.jpg', crop: [0, 0.15, 1, 0.856], widths: [480, 800, 1200] },
-  'proj-bedframe': { src: 'photos/instagram/bed-frame-DdHnM6gOBnY.jpg', crop: [0, 0.135, 1, 0.865], widths: [480, 800, 1080] },
-  'proj-bedroom': { src: 'photos/upscaled/bedroom.jpg', crop: [0, 0.12, 1, 0.873], widths: [480, 800, 1200] },
+  'proj-bedframe': { src: 'photos/instagram/bed-frame-DdHnM6gOBnY.jpg', crop: [0, 0.17, 1, 0.837], widths: [640, 1080] },
+  'proj-armchair-sofa': { src: 'photos/instagram/armchair-sofa-DdUsUHcukel.jpg', crop: [0, 0.28, 1, 0.947], widths: [640, 1080] },
   // about
   about: { src: 'photos/upscaled/lounge.jpg', crop: [0, 0.05, 1, 0.885], widths: [560, 900, 1300] },
   // craftsmanship details (1:1)
-  'craft-fabric': { src: 'photos/upscaled/bedroom.jpg', crop: [0.52, 0.405, 0.82, 0.575], widths: [400, 640] },
+  'craft-fabric': { src: 'photos/instagram/bed-frame-DdHnM6gOBnY.jpg', crop: [0.04, 0.43, 0.46, 0.85], widths: [400, 454] },
   'craft-fronts': { src: 'photos/original/kitchen.webp', crop: [0.3, 0.23, 0.573, 0.64], widths: [400] },
   'craft-forms': { src: 'photos/upscaled/clinic.jpg', crop: [0.55, 0.33, 0.95, 0.514], widths: [400, 700] },
   'craft-modules': { src: 'photos/upscaled/lounge.jpg', crop: [0.05, 0.6, 0.45, 0.867], widths: [400, 700] },
+  // process: real work (square)
+  'proc-fabrics': { src: 'photos/instagram/fabric-samples-DdHoNROu6ks.jpg', crop: [0, 0.05, 1, 0.6125], widths: [405] },
+  'proc-build': { src: 'photos/instagram/bed-frame-DdHnM6gOBnY.jpg', crop: [0.18, 0.17, 0.83, 0.82], widths: [420, 702] },
+  'proc-installed': { src: 'photos/upscaled/clinic.jpg', crop: [0.05, 0.33, 0.95, 0.745], widths: [420, 720] },
 };
 
-// Optional CLI filter: node build-images.mjs cat-bed proj-kitchen (rebuilds only those)
+// Optional CLI filter: node build-images.mjs cat-bed proj-kitchen (rebuilds only those),
+// or node build-images.mjs config (colour-selector previews only)
 const only = process.argv.slice(2);
+const onlyConfig = only.length === 1 && only[0] === 'config';
 const manifest = JSON.parse(readFileSync(join(ROOT, 'src/data/images.json'), 'utf8'));
 for (const [name, cfg] of Object.entries(images)) {
-  if (only.length && !only.includes(name)) continue;
+  if (onlyConfig || (only.length && !only.includes(name))) continue;
   const img = sharp(M(cfg.src));
   const { width: W, height: H } = await img.metadata();
   const [x0, y0, x1, y1] = cfg.crop;
@@ -54,6 +60,8 @@ for (const [name, cfg] of Object.entries(images)) {
   const ch = Math.round((y1 - y0) * H);
   const widths = cfg.widths.filter((w) => w <= cw);
   if (!widths.length) widths.push(cw);
+  // drop stale sizes of this image from earlier runs
+  for (const f of readdirSync(OUT_IMG)) if (f.startsWith(`${name}-`) && /^\d+\./.test(f.slice(name.length + 1))) rmSync(join(OUT_IMG, f));
   for (const w of widths) {
     const h = Math.round((w * ch) / cw);
     const base = sharp(M(cfg.src))
@@ -68,23 +76,24 @@ for (const [name, cfg] of Object.entries(images)) {
   console.log(name, manifest[name]);
 }
 
-if (only.length) {
+if (only.length && !onlyConfig) {
   writeFileSync(join(ROOT, 'src/data/images.json'), JSON.stringify(manifest, null, 2) + '\n');
   process.exit(0);
 }
 
 // Open Graph images (1200x630) from the finished hero frame
-await sharp(join(ROOT, 'public/media/hero/desktop-end-1920.jpg'))
+if (!onlyConfig) await sharp(join(ROOT, 'public/media/hero/desktop-end-1920.jpg'))
   .resize(1200, 630, { fit: 'cover', position: 'centre' })
   .jpeg({ quality: 82, mozjpeg: true })
   .toFile(join(ROOT, 'public/media/og-image.jpg'));
 
 // Colour configurator previews
 const config = {
-  bed: { finishes: ['ivory', 'sand', 'mocha', 'olive', 'graphite', 'terracotta'], widths: [600, 900, 1200] },
-  armchair: { finishes: ['taupe', 'ivory', 'emerald', 'terracotta', 'charcoal', 'dustyblue'], widths: [480, 851] },
+  bed: { finishes: ['ivory', 'sand', 'mocha', 'olive', 'graphite', 'terracotta', 'black'], widths: [600, 900, 1200] },
+  armchair: { finishes: ['taupe', 'ivory', 'emerald', 'terracotta', 'charcoal', 'dustyblue', 'black'], widths: [480, 851, 1276] },
 };
 for (const [id, c] of Object.entries(config)) {
+  rmSync(join(OUT_CFG, id), { recursive: true, force: true }); // no stale variants
   mkdirSync(join(OUT_CFG, id), { recursive: true });
   for (const f of c.finishes) {
     for (const w of c.widths) {

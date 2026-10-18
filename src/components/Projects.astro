@@ -8,12 +8,13 @@ interface Props {
 }
 const { lang } = Astro.props;
 const d = t(lang);
+// Real work only (photographs from the client and its Instagram); visualizations live elsewhere.
 const items = [
   { img: 'proj-kitchen', key: 'kitchen', cls: 'wide' },
   { img: 'proj-clinic', key: 'clinic', cls: 'tall' },
-  { img: 'proj-bedframe', key: 'bedFrame', cls: 'tall' },
   { img: 'proj-living', key: 'livingSofa', cls: 'tall' },
-  { img: 'proj-bedroom', key: 'bedroom', cls: 'tall', viz: true },
+  { img: 'proj-bedframe', key: 'bedFrame', cls: 'wide' },
+  { img: 'proj-armchair-sofa', key: 'armchairSofa', cls: 'wide' },
 ] as const;
 ---
 
@@ -42,13 +43,20 @@ const items = [
                   alt={d.projects.alts[it.key]}
                   sizes={it.cls === 'wide' ? '(max-width: 760px) 92vw, 62vw' : '(max-width: 760px) 92vw, 31vw'}
                 />
-                {'viz' in it && <span class="badge badge--soft projects__badge">{d.furniture.visualization}</span>}
               </div>
               <figcaption>{d.projects.items[it.key]}</figcaption>
             </figure>
           </li>
         ))
       }
+      <li class="projects__item projects__item--tall projects__more reveal">
+        <a href={business.instagram.url} target="_blank" rel="noopener">
+          <Icon name="instagram" />
+          <span class="projects__more-title">{d.projects.instagram}</span>
+          <span class="projects__more-handle">@{business.instagram.handle}</span>
+          <span class="visually-hidden">{d.a11y.newTab}</span>
+        </a>
+      </li>
     </ul>
   </div>
 </section>
@@ -86,10 +94,37 @@ const items = [
   .projects__item--tall .projects__media {
     aspect-ratio: 3 / 4;
   }
-  .projects__badge {
-    position: absolute;
-    left: 0.75rem;
-    bottom: 0.75rem;
+  .projects__more a {
+    height: 100%;
+    min-height: 14rem;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 0.6rem;
+    padding: 2rem 1.5rem;
+    border-radius: var(--radius);
+    background: var(--night);
+    color: var(--on-night);
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.25s var(--ease);
+  }
+  .projects__more a:hover {
+    background: #2a241f;
+  }
+  .projects__more :global(svg) {
+    width: 34px;
+    height: 34px;
+    color: var(--gold-light);
+  }
+  .projects__more-title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1.2;
+  }
+  .projects__more-handle {
+    font-size: 0.9rem;
+    color: var(--on-night-2);
   }
   figcaption {
     font-size: 0.92rem;
