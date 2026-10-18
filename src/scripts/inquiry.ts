@@ -19,7 +19,7 @@ interface Text {
 /**
  * Netlify Forms endpoint. Netlify only accepts the submission when form handling is
  * active for the site; otherwise this path is a plain 404, which we treat as
- * "not delivered" and hand the request off to SMS / Instagram / phone instead.
+ * "not delivered" and hand the request off to Instagram Direct / a phone call instead.
  */
 const ENDPOINT = '/forms/inquiry/';
 const DRAFT_FIELDS = [
@@ -46,7 +46,6 @@ export function initInquiry() {
   if (!form) return;
   form.noValidate = true;
   const text: Text = JSON.parse(form.dataset.text || '{}');
-  const phoneE164 = form.dataset.phone!;
   const igDirect = form.dataset.instagram!;
   const el = <T extends Element = HTMLInputElement>(sel: string) => form.querySelector<T>(sel)!;
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | RadioNodeList | null;
@@ -60,7 +59,6 @@ export function initInquiry() {
   const success = card.querySelector<HTMLElement>('[data-result-success]')!;
   const fallback = card.querySelector<HTMLElement>('[data-result-fallback]')!;
   const summaryBox = card.querySelector<HTMLTextAreaElement>('[data-summary]')!;
-  const smsLink = card.querySelector<HTMLAnchorElement>('[data-sms]')!;
   const igBtn = card.querySelector<HTMLButtonElement>('[data-instagram-send]')!;
   const copyStatus = card.querySelector<HTMLElement>('[data-copy-status]')!;
   const errorSummary = el<HTMLElement>('[data-error-summary]');
@@ -261,7 +259,7 @@ export function initInquiry() {
     return invalid.length === 0;
   };
 
-  /* ---------- summary used for SMS / Instagram hand-off ---------- */
+  /* ---------- summary used for the Instagram hand-off ---------- */
   const buildSummary = () => {
     const s = text.summary;
     const method = val('contact_method');
@@ -295,7 +293,6 @@ export function initInquiry() {
 
   const showFallback = (summary: string) => {
     summaryBox.value = summary;
-    smsLink.href = `sms:${phoneE164}?&body=${encodeURIComponent(summary)}`;
     copyStatus.textContent = '';
     result.hidden = false;
     fallback.hidden = false;

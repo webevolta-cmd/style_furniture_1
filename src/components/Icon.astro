@@ -13,7 +13,6 @@ interface Props {
     | 'pin'
     | 'menu'
     | 'close'
-    | 'sms'
     | 'copy'
     | 'sparkle';
   label?: string;
@@ -37,7 +36,6 @@ const paths: Record<Props['name'], string> = {
   pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>',
   menu: '<path d="M4 8h16M4 16h16"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
-  sms: '<rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="m4 6.5 8 5.5 8-5.5"/>',
   copy: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
   sparkle: '<path d="M12 3.5 13.8 10l6.7 2-6.7 2L12 20.5 10.2 14l-6.7-2 6.7-2Z"/>',
 };

@@ -63,14 +63,13 @@ grammatical Eastern Armenian; it does not quote the captions verbatim.
 - Google rating, reviews or testimonials (none found or accessible) — no testimonials were written.
 - Prices, delivery terms, warranty, production timelines, material brands, certifications, years in business.
 - The temporary "40% discount" mentioned in one caption (time-limited promotion).
-- WhatsApp/Viber/Telegram — not listed by the business, so only phone, SMS and Instagram are offered.
+- SMS, WhatsApp, Viber, Telegram — not listed by the business, so only the phone (calls) and Instagram Direct are offered.
 
 ## Unresolved / for the client
 
-- **SMS:** the published number (033 = mobile) can receive SMS, and the site offers SMS as a contact
-  method and as a way to send a request when online delivery isn't available. The business publishes
-  the number for orders and Instagram Direct for messages; please confirm SMS is read, or remove
-  `sms` from `methods` in `src/components/Inquiry.astro` and the SMS button in its fallback block.
+- **More contact channels:** the business publishes its number for orders and Instagram Direct for
+  messages, so the form offers exactly those (call back or Instagram). If it also reads SMS, WhatsApp
+  or Viber on that number, confirm it and they can be added to the form's contact methods.
 - To show a map, opening hours or a showroom address: add the fields to `src/data/business.ts`, render
   them in `src/components/Contact.astro` and add them to the LocalBusiness JSON-LD in
   `src/layouts/Base.astro` (address/openingHours).

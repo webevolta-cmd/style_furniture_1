@@ -10,7 +10,8 @@ const { lang } = Astro.props;
 const d = t(lang);
 const f = d.inquiry;
 const requestTypes = ['consultation', 'measurement', 'quote', 'custom'] as const;
-const methods = ['call', 'sms', 'instagram'] as const;
+// only channels the business publishes: its phone number (orders) and Instagram Direct
+const methods = ['call', 'instagram'] as const;
 
 // Strings the client script needs (validation, summary, fallback)
 const clientText = {
@@ -66,7 +67,6 @@ const clientText = {
         netlify-honeypot="bot-field"
         data-inquiry
         data-text={JSON.stringify(clientText)}
-        data-phone={business.phone.e164}
         data-instagram={business.instagram.direct}
       >
         <input type="hidden" name="form-name" value="inquiry" />
@@ -233,10 +233,6 @@ const clientText = {
               <Icon name="instagram" />
               {f.sendInstagram}
             </button>
-            <a class="btn btn--ghost" href={`sms:${business.phone.e164}`} data-sms>
-              <Icon name="sms" />
-              {f.sendSms}
-            </a>
           </div>
           <label class="visually-hidden" for="f-summary">{f.summaryTitle}</label>
           <textarea id="f-summary" class="form-result__summary" readonly rows="8" data-summary></textarea>

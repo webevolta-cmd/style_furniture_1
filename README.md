@@ -14,8 +14,8 @@ Static site built with [Astro](https://astro.build) — no server, no database, 
    detection**, then **Deploys → Trigger deploy** once, and under **Forms → Form notifications** add the
    email address that should receive requests. Netlify switches form detection off for new sites and it
    can't be switched on from the repository, so until this is done **no request reaches Netlify**: the
-   form tells every visitor that online sending isn't available and offers to call, or send the same
-   request by Instagram Direct or SMS (see below). Nothing is lost, but nothing arrives by email either.
+   form tells every visitor that online sending isn't available and offers to call, or to send the same
+   request by Instagram Direct (see below). Nothing is lost, but nothing arrives by email either.
 
 Routes: `/hy/` (Armenian, default) and `/en/` (English). `/` redirects to `/hy/`, or to `/en/` for a
 visitor who explicitly picked English before (cookie set by the language switch — no geo-guessing).
@@ -28,9 +28,10 @@ Canonical, `hreflang`, Open Graph and `sitemap.xml` URLs use Netlify's site URL 
   an HTTP 200 from Netlify.
 - Whenever online delivery isn't confirmed (form detection off, offline, error), the visitor never sees
   a fake "sent" message. The complete request (type, contact, furniture, colour/configuration,
-  dimensions, model, link, message) is shown and can be passed on in one tap: **call**, **copy into
-  Instagram Direct**, or **SMS** to 033 26 33 66. While form detection is off, the browser console also
-  shows the 404 of that form POST; it disappears once detection is on.
+  dimensions, model, link, message) is shown and can be passed on in one tap: **call** 033 26 33 66 or
+  **copy it and open Instagram Direct**. Only the channels the business publishes are offered (its
+  order phone and Instagram Direct). While form detection is off, the browser console also shows the
+  404 of that form POST; it disappears once detection is on.
 
 ## What's inside
 
@@ -170,4 +171,5 @@ field data (LCP/CLS/INP from real visitors) — check these after the first depl
   [`docs/research-log.md`](docs/research-log.md). No address, opening hours, prices or reviews are
   shown because none are published (to add them, see "Unresolved" in the research log).
 - Visualisations (hero animation, colour previews, some category images) are labelled as such.
-- Please confirm that SMS to 033 26 33 66 is read (it is offered as a contact method).
+- Contact channels are the published ones only: phone 033 26 33 66 and Instagram Direct. If the
+  business also wants SMS/WhatsApp/Viber offered, confirm them first (see the research log).
