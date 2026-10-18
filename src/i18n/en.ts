@@ -10,6 +10,8 @@ const en: Dict = {
     ogAlt: 'Style Furniture — a bedroom with a layered upholstered headboard bed and a built-in wardrobe',
   },
 
+  punct: { stop: '.', label: ':' },
+
   a11y: {
     skip: 'Skip to main content',
     menuOpen: 'Open menu',
@@ -306,7 +308,7 @@ const en: Dict = {
     },
     summaryTitle: 'Request to Style Furniture',
     summary: {
-      request: 'Request',
+      request: 'Request type',
       name: 'Name',
       contact: 'Contact',
       furniture: 'Furniture',

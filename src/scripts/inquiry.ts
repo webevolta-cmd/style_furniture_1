@@ -14,6 +14,8 @@ interface Text {
   copied: string;
   copyFailed: string;
   langName: string;
+  /** label → value separator: «՝» in Armenian, ':' in English */
+  sep: string;
 }
 
 /**
@@ -266,19 +268,20 @@ export function initInquiry() {
     const contact = method === 'instagram' ? `Instagram ${val('instagram')}` : `${text.methods[method] ?? ''} ${val('phone')}`;
     const furniture = furnitureSelect.value === 'other' ? val('furniture_other') : text.types2[furnitureSelect.value] ?? '';
     const dims = ['width', 'depth', 'height'].map((n) => val(n)).filter(Boolean);
+    const line = (label: string, value: string) => `${label}${text.sep} ${value}`;
     const lines = [
       text.summaryTitle,
-      `${s.request}: ${text.types[val('request_type')] ?? ''}`,
-      `${s.name}: ${val('name')}`,
-      `${s.contact}: ${contact.trim()}`,
-      `${s.furniture}: ${furniture}`,
-      val('configuration') && `${s.config}: ${val('configuration')}`,
-      val('color') && `${s.color}: ${val('color')}`,
-      dims.length && `${s.dimensions}: ${dims.join(' × ')} ${text.units[val('unit')] ?? ''}`,
-      val('model') && `${s.model}: ${val('model')}`,
-      val('reference_link') && `${s.link}: ${val('reference_link')}`,
-      val('message') && `${s.message}: ${val('message')}`,
-      `${s.lang}: ${text.langName}`,
+      line(s.request, text.types[val('request_type')] ?? ''),
+      line(s.name, val('name')),
+      line(s.contact, contact.trim()),
+      line(s.furniture, furniture),
+      val('configuration') && line(s.config, val('configuration')),
+      val('color') && line(s.color, val('color')),
+      dims.length && line(s.dimensions, `${dims.join(' × ')} ${text.units[val('unit')] ?? ''}`),
+      val('model') && line(s.model, val('model')),
+      val('reference_link') && line(s.link, val('reference_link')),
+      val('message') && line(s.message, val('message')),
+      line(s.lang, text.langName),
     ];
     return lines.filter(Boolean).join('\n');
   };

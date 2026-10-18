@@ -48,7 +48,7 @@ export function initConfigurator() {
     const my = ++token;
     const set = srcset(p, finish);
     const finishName = p.finishes.find((f) => f.id === finish)?.name ?? '';
-    const alt = `${p.alt}: ${finishName}`;
+    const alt = `${p.alt} (${finishName.toLocaleLowerCase(document.documentElement.lang)})`;
     if (img.getAttribute('srcset') === set) return;
     const probe = new Image();
     probe.sizes = sizes;

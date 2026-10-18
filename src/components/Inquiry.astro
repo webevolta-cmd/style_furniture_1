@@ -28,6 +28,7 @@ const clientText = {
   copied: f.copied,
   copyFailed: f.copyFailed,
   langName: lang === 'hy' ? 'Հայերեն' : 'English',
+  sep: d.punct.label,
 };
 ---
 
@@ -38,7 +39,7 @@ const clientText = {
       <h2 id="request-title" class="reveal">{f.title}</h2>
       <p class="inquiry__lead reveal">
         {f.lead}
-        <a href={`tel:${business.phone.e164}`} class="inquiry__phone">{business.phone.display}</a>.
+        <a href={`tel:${business.phone.e164}`} class="inquiry__phone">{business.phone.display}</a>{d.punct.stop}
       </p>
       <ul class="free-chips inquiry__chips reveal" aria-label={d.services.title}>
         <li><Icon name="chat" />{d.free.consultation}</li>
@@ -94,7 +95,7 @@ const clientText = {
         </fieldset>
 
         <div class="form__config" data-config-chip hidden>
-          <span class="form__config-label">{f.config}:</span>
+          <span class="form__config-label">{f.config}{d.punct.label}</span>
           <strong data-config-chip-text></strong>
           <button type="button" class="form__config-remove" data-config-remove aria-label={f.configRemove}>
             <Icon name="close" />
@@ -210,7 +211,7 @@ const clientText = {
 
         <noscript>
           <p class="form__privacy">
-            {d.contact.phoneLabel}: <a href={`tel:${business.phone.e164}`}>{business.phone.display}</a> · Instagram:
+            {d.contact.phoneLabel}{d.punct.label} <a href={`tel:${business.phone.e164}`}>{business.phone.display}</a> · Instagram{d.punct.label}
             <a href={business.instagram.url}>@{business.instagram.handle}</a>
           </p>
         </noscript>

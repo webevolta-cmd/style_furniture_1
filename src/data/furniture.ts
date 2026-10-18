@@ -64,7 +64,7 @@ export const configProducts: ConfigProduct[] = [
       { id: 'sand', swatch: '#b8977a', name: { hy: 'Ավազա\u00ADգույն', en: 'Sand' } },
       { id: 'mocha', swatch: '#704c36', name: { hy: 'Սուրճա\u00ADգույն', en: 'Mocha' } },
       { id: 'olive', swatch: '#746e52', name: { hy: 'Ձիթապտղա\u00ADգույն', en: 'Olive' } },
-      { id: 'graphite', swatch: '#433c39', name: { hy: 'Գրաֆիտ', en: 'Graphite' } },
+      { id: 'graphite', swatch: '#433c39', name: { hy: 'Գրաֆիտա\u00ADգույն', en: 'Graphite' } },
       { id: 'terracotta', swatch: '#894931', name: { hy: 'Աղյուսա\u00ADգույն', en: 'Terracotta' } },
       { id: 'black', swatch: '#262321', name: { hy: 'Սև', en: 'Black' } },
     ],

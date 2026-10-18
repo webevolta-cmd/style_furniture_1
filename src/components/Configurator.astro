@@ -63,13 +63,14 @@ const clientData = configProducts.map((p) => ({
             sizes={sizes}
             width={first.width}
             height={first.height}
-            alt={`${first.alt[lang]}: ${plain(first.finishes[0].name[lang])}`}
+            alt={`${first.alt[lang]} (${plain(first.finishes[0].name[lang]).toLocaleLowerCase(lang)})`}
             loading="lazy"
             decoding="async"
           />
           <img class="config__img config__img--next" data-config-next alt="" aria-hidden="true" />
           <figcaption class="config__caption">
-            <span class="badge badge--soft">{caps(d.configurator.previewNote)}</span>
+            <span class="badge badge--soft config__note-long">{caps(d.configurator.previewNote)}</span>
+            <span class="badge badge--soft config__note-short" aria-hidden="true">{caps(d.furniture.visualization)}</span>
             <span class="badge badge--soft config__other-flag" data-config-other-flag hidden>{caps(d.configurator.otherNote)}</span>
             <span class="badge badge--soft config__other-flag" data-config-error role="status" hidden>{caps(d.configurator.loadError)}</span>
           </figcaption>
@@ -103,7 +104,7 @@ const clientData = configProducts.map((p) => ({
 
       <div class="config__panel">
         <p class="config__selected" aria-live="polite" data-config-status>
-          <span class="config__selected-label">{d.configurator.selected}:</span>
+          <span class="config__selected-label">{d.configurator.selected}{d.punct.label}</span>
           <strong data-config-summary>{first.name[lang]} · {plain(first.finishes[0].name[lang])}</strong>
         </p>
 
@@ -249,6 +250,9 @@ const clientData = configProducts.map((p) => ({
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+  .config__note-short {
+    display: none;
   }
   .config__other-flag {
     text-transform: none;
@@ -400,53 +404,62 @@ const clientData = configProducts.map((p) => ({
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
-  /* Phones in landscape: preview and swatches side by side with the panel, all on one screen */
+  /* Phones in landscape: the product switch on top, then the preview at almost full screen height
+     with its swatches beside it (the furniture and its colour controls on one screen), then the
+     summary and CTA. */
   @media (orientation: landscape) and (max-height: 540px) {
     .config__layout {
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      grid-template-columns: 1fr;
       grid-template-areas:
-        'stage products'
-        'stage panel';
+        'products'
+        'stage'
+        'panel';
+    }
+    .segmented {
+      grid-template-columns: 1fr 1fr;
     }
     .config__stage {
-      gap: 0.6rem;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
     }
     .config__frame {
-      width: min(100%, calc((100svh - var(--header-h) - 9.5rem) * 1.2));
+      width: min(58vw, calc((100svh - var(--header-h) - 2rem) * 1.2));
       min-width: 0;
     }
+    /* one short line instead of a two-line badge over the furniture */
+    .config__note-long {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .config__note-short {
+      display: inline-flex;
+    }
     .config__caption .badge {
-      font-size: 0.6rem;
-      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
     }
     .swatches .config__label {
-      margin-bottom: 0.35rem;
-      font-size: 0.68rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.75rem;
     }
-    /* one labelled row that scrolls sideways instead of squeezing eight names */
     .swatches__list {
-      display: flex;
+      grid-template-columns: repeat(auto-fill, minmax(5.2rem, 1fr));
       gap: 0.25rem;
-      overflow-x: auto;
-      scroll-snap-type: x proximity;
-      overscroll-behavior-x: contain;
-      padding-bottom: 0.25rem;
     }
     .swatch {
-      flex: 0 0 4.4rem;
-      scroll-snap-align: start;
       padding: 0.3rem 0.1rem;
       gap: 0.3rem;
     }
     .swatch__dot {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
     }
     .swatch__name {
-      font-size: 0.68rem;
-    }
-    .segmented {
-      grid-template-columns: 1fr;
+      font-size: 0.75rem;
     }
   }
   /* Armenian colour names are long compounds («Ձիթապտղա-գույն»): on narrow phones three columns

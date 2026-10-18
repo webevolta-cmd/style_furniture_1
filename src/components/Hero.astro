@@ -209,7 +209,7 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(to bottom, rgba(251, 248, 243, 0.82) 0%, rgba(251, 248, 243, 0.42) 22%, rgba(251, 248, 243, 0) 42%),
+      linear-gradient(to bottom, rgba(251, 248, 243, 0.9) 0%, rgba(251, 248, 243, 0.72) 24%, rgba(251, 248, 243, 0) 46%),
       linear-gradient(to top, rgba(251, 248, 243, 0.85) 0%, rgba(251, 248, 243, 0.45) 18%, rgba(251, 248, 243, 0) 34%),
       linear-gradient(to right, rgba(251, 248, 243, 0.32) 0%, rgba(251, 248, 243, 0) 38%);
   }
@@ -230,6 +230,11 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
     grid-row: 1;
     opacity: var(--intro);
   }
+  /* over the photograph the gold is a shade deeper so it keeps WCAG contrast */
+  .hero__eyebrow,
+  .hero__brand {
+    color: #7a5624;
+  }
   .hero__h1 {
     grid-row: 2;
     display: grid;
@@ -241,7 +246,6 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--gold-deep);
   }
   .hero__title {
     font-size: var(--step-5);
@@ -259,17 +263,27 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
   .hero__swap > * {
     grid-area: 1 / 1;
   }
+  /* Text over the photograph sits on the same soft card as the stage indicator, so it stays
+     readable whatever the room behind it shows (curtains, flowers, lamps). */
+  .hero__lead,
+  .hero__final {
+    justify-self: start;
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--radius);
+    background: rgba(251, 248, 243, 0.9);
+    border: 1px solid var(--line);
+  }
   .hero__lead {
     font-size: var(--step-1);
     color: var(--ink-2);
-    max-width: 30rem;
+    max-width: 32rem;
     opacity: var(--intro);
     transform: translate3d(0, calc((1 - var(--intro)) * -16px), 0);
   }
   .hero__final {
     display: grid;
     gap: 0.4rem;
-    max-width: 30rem;
+    max-width: 32rem;
     opacity: var(--final);
     transform: translate3d(0, calc((1 - var(--final)) * 14px), 0);
     pointer-events: none;
@@ -396,8 +410,8 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
     display: none;
   }
   .hero__note {
-    font-size: 0.74rem;
-    color: var(--ink-3);
+    font-size: 0.78rem;
+    color: var(--ink-2);
   }
   .hero__free {
     display: flex;
@@ -628,9 +642,9 @@ const stages = JSON.stringify(heroManifest.stages ?? [0, 36, 72, 108, 144]);
     }
     .hero__scrim {
       background:
-        linear-gradient(to bottom, rgba(251, 248, 243, 0.7) 0%, rgba(251, 248, 243, 0) 30%),
-        linear-gradient(to right, rgba(251, 248, 243, 0.6) 0%, rgba(251, 248, 243, 0) 50%),
-        linear-gradient(to top, rgba(251, 248, 243, 0.75) 0%, rgba(251, 248, 243, 0) 26%);
+        linear-gradient(to bottom, rgba(251, 248, 243, 0.8) 0%, rgba(251, 248, 243, 0) 32%),
+        linear-gradient(to right, rgba(251, 248, 243, 0.72) 0%, rgba(251, 248, 243, 0.4) 40%, rgba(251, 248, 243, 0) 62%),
+        linear-gradient(to top, rgba(251, 248, 243, 0.94) 0%, rgba(251, 248, 243, 0.82) 16%, rgba(251, 248, 243, 0) 36%);
     }
   }
 
