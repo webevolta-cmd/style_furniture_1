@@ -62,28 +62,40 @@ docs/research-log.md    sources, verified facts, client-supplied facts, open poi
 
 Generated with Higgsfield from the client's bedroom photo. The finished room is the reference; a
 bare-walls version of the same room (floor and curtains kept) and four intermediate stages were derived
-from it **backwards** by masked inpainting (GPT Image 2.5, Nano Banana 2), so every piece of furniture
-is pixel-identical from the stage it appears in to the end. Each pair of neighbouring stages was then
+from it **backwards** by masked inpainting (GPT Image 2.5, Nano Banana 2), so in every keyframe each
+piece of furniture is identical from the stage it appears in to the end. Each pair of neighbouring stages was then
 animated with **Kling 3.0 Omni (first/last frame, locked camera)** — 5 segments per orientation
 (16:9 desktop, 9:16 phones): MDF wall panels → wardrobe → wardrobe doors & bed base → mattress,
 headboard, bedside tables & bench → bedding, art & finishing touches.
 
 - 180 frames per set, **36 per stage**, so every stage ends exactly on its keyframe and desktop and
-  phones share the same stage boundaries. Scroll maps to whole frames (forward and backward); the
-  first 5 % of the pinned scroll holds the bare room and the last 14 % holds the finished room, both
-  shown as full-resolution stills (the keyframes themselves). One gentle camera move: a 5 % pull-back.
+  phones share the same stage boundaries. Scroll maps to whole frames, forward and backward, with no
+  blending between frames; the first 5 % of the pinned scroll holds the bare room and the last 14 %
+  holds the finished room, both shown as full-resolution stills (the keyframes themselves, which match
+  the first and last frames, so the hand-over is instant). One gentle camera move: a 5 % pull-back.
 - Loading: a small coarse pass (every 15th frame) after the page has loaded and is idle; once the
-  visitor scrolls, only a window around the current position (36 ahead, 12 behind). Compressed and
-  decoded frames are both capped (desktop 72/16, phones 84/12), so memory stays bounded. Fetching
-  pauses off-screen and in background tabs; failed frames are retried once, after 1.2 s.
-- Adaptation: Save-Data, 2G/3G, ≤ 2 GB RAM or ≤ 2 CPU cores start on the lighter set; on any device,
-  if scrubbing runs slower than ~40 fps (p95 frame time > 24 ms), it switches once to the lighter set,
-  keeping the current position and the picture on screen.
-- *Reduced motion*: the finished room as a still image, no pinned scrolling.
-- The phone segment 4 was repaired after generation (`scripts/media/repair_mobile_seg4.py`): Kling
-  lowered the mattress through a hatch opening in the ceiling. The camera is locked, so the area above
-  the headboard is replaced by a clean, exposure-matched plate of the same room until the mattress is
-  just above the headboard. The untouched generation is kept in `media-src/hero/generated/`.
+  visitor scrolls, only a window around the current position (36 ahead, 12 behind): the nearest frames
+  first, then every 4th and every 2nd frame ahead, so a fast scroll on a slow connection still gets
+  evenly spaced frames. The stage name and progress always describe the frame on screen; while it lags
+  the scroll position, the progress bar breathes. Compressed and decoded frames are both capped
+  (desktop 72/16, phones 84/12), so memory stays bounded. Fetching pauses off-screen and in background
+  tabs; failed frames are retried once, after 1.2 s; requests are cancelled when the page is left.
+- Adaptation: Save-Data, 2G/3G, a browser-reported downlink < 2 Mbit/s, ≤ 2 GB RAM or ≤ 2 CPU cores
+  start on the lighter set; a throughput below ~0.8 MB/s measured on the first frames, or scrubbing
+  slower than ~40 fps (p95 frame time > 24 ms), switches once to the lighter set, keeping the current
+  position and the picture on screen.
+- *Reduced motion*: the finished room as a still image, no pinned scrolling (also when the setting is
+  changed while the page is open). If the frames can't be loaded at all, the finished room is shown as
+  one still image once the visitor scrolls in.
+- Repairs after generation (`scripts/media/repair_hero_clips.py`; the camera is locked, so a defect in
+  a region no furniture moves through is replaced by a clean, exposure-matched plate of the same room;
+  the untouched generations are kept in `media-src/hero/generated/`):
+  - phones, stage 4: Kling lowered the mattress through a hatch opening in the ceiling and opened the
+    finished wardrobe to slide a headboard panel out of it. The ceiling and the closed wardrobe are
+    kept until the mattress is just above the headboard; the panel appears from behind the wardrobe;
+  - phones, stage 5: a smoke-like stain on the headboard is removed;
+  - desktop, stages 1–3: the curtains drifted into a crinkled texture and snapped back at stage 4; they
+    now keep clean folds, turning gradually into those of stage 4.
 
 ### Colour selector
 
@@ -107,7 +119,7 @@ node scripts/media/build-images.mjs                # photos, colour previews, OG
 node scripts/media/build-images.mjs config         # colour previews only
 # Python 3 + opencv-python-headless + numpy:
 python3 scripts/media/recolor_variants.py          # colour variants from media-src/config/raw/
-python3 scripts/media/repair_mobile_seg4.py        # phone hero segment 4 repair (needs ffmpeg)
+python3 scripts/media/repair_hero_clips.py         # hero clip repairs, generated/ → hero/ (needs ffmpeg)
 ```
 
 Fonts and media keep stable file names, so `netlify.toml` caches them with revalidation
@@ -155,11 +167,26 @@ field data (LCP/CLS/INP from real visitors) — check these after the first depl
 
 ### Known limitations
 
-- **Hero motion** (no Higgsfield credits were left for regenerating):
-  - The wall art fades in (desktop stage 5, phones end of stage 4) rather than being hung.
-  - Phones, stage 4: the bench is carried in from the foreground, and after the repair the mattress
-    appears from just above the headboard within about one frame of scrolling.
-  - Desktop, stage 4: the bedside tables change shape for about three frames as they settle.
+- **Hero motion.** Kling animates the movement between the keyframes, and some pieces do not arrive
+  as installed parts: they grow, change shape or fade for a few frames (frame numbers of the 180-frame
+  sequence; one frame is about 14 px of scrolling on a 1440×900 screen):
+  - desktop, stage 2 (≈ 40–56): the wardrobe side panels rise out of the floor and bend slightly
+    before standing;
+  - desktop, stage 3 (≈ 73–80): the bed base first shows as a faint outline and grows out of the rug;
+    door fronts and a shelf appear out of the wardrobe carcass;
+  - desktop, stage 4 (≈ 114–125, 133–135): the headboard changes shape several times before it
+    settles, the bedside tables change shape for about three frames, the bench appears within two;
+  - desktop, stage 5, and phones, end of stage 4: the wall art fades in rather than being hung;
+  - phones, stage 2 (≈ 38–51): a wardrobe panel tilts up from the floor with a dark outline;
+  - phones, stage 3 (≈ 75–77): the bed base shows as a faint outline before its rails appear;
+  - phones, stage 4: the bench is carried in from the foreground, and the mattress appears from just
+    above the headboard within about one frame of scrolling;
+  - phones, stage 5 (≈ 146–158): the duvet rises from behind the headboard and the throw forms from
+    soft shapes on the bed.
+
+  Clean versions need new Higgsfield generations with more intermediate keyframes (carcass standing,
+  doors hung, base placed, headboard placed): roughly 40–60 credits. The account used has 0.22 credits
+  left, so these were repaired where a clean plate could fix them and are disclosed here otherwise.
 - **Resolution:** the phone stages 4–5 were generated at 720p, so all phone frames are 720×1280
   (sharper 1080×1920 stills are shown when the visitor stops at the start and the end). Some photos
   are limited by their sources: the bed colour preview (1200 px), kitchen crops (from a 1536 px photo)
