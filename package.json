@@ -9,14 +9,16 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "tsc --noEmit && astro build",
     "preview": "astro preview",
+    "check:types": "tsc --noEmit",
     "check:links": "node scripts/check-dist.mjs"
   },
   "dependencies": {
     "astro": "7.3.8"
   },
   "devDependencies": {
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "typescript": "5.9.3"
   }
 }

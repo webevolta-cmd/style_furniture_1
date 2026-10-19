@@ -49,7 +49,15 @@ export function initConfigurator() {
     const set = srcset(p, finish);
     const finishName = p.finishes.find((f) => f.id === finish)?.name ?? '';
     const alt = `${p.alt} (${finishName.toLocaleLowerCase(document.documentElement.lang)})`;
-    if (img.getAttribute('srcset') === set) return;
+    if (img.getAttribute('srcset') === set) {
+      // back to the picture already on screen: drop the swap still in progress
+      clearTimeout(spinnerTimer);
+      frame.classList.remove('is-loading');
+      next.classList.remove('is-visible');
+      loadError.hidden = true;
+      img.alt = alt;
+      return;
+    }
     const probe = new Image();
     probe.sizes = sizes;
     probe.srcset = set;
@@ -111,13 +119,18 @@ export function initConfigurator() {
     if (!announce) status.setAttribute('aria-live', 'off');
     summary.textContent = `${p.name} · ${colorName}`;
     if (!announce) requestAnimationFrame(() => status.setAttribute('aria-live', 'polite'));
-    save(KEYS.config, { product: state.product, finish: state.finish, other: state.other });
+    save(KEYS.config, { product: state.product, finish: state.finish, other: state.other, presets: state.lastPreset });
   };
 
   // restore (e.g. after switching language)
-  const saved = load<ConfigSelection>(KEYS.config);
+  const saved = load<ConfigSelection & { presets?: Record<string, string> }>(KEYS.config);
   if (saved && products.some((p) => p.id === saved.product)) {
     state.product = saved.product;
+    // the preset shown behind "Other colour" stays the same too
+    for (const q of products) {
+      const f = saved.presets?.[q.id];
+      if (f && q.finishes.some((x) => x.id === f)) state.lastPreset[q.id] = f;
+    }
     const p = product();
     state.finish = saved.finish === 'other' || p.finishes.some((f) => f.id === saved.finish) ? saved.finish : p.defaultFinish;
     state.other = saved.other || '';

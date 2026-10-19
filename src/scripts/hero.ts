@@ -12,6 +12,8 @@
  * - Slow connections (measured on the first fetches) and devices that cannot keep up while
  *   scrubbing switch (once) to the lighter frame set.
  * - The stage label, progress and data-frame always describe the frame actually on screen.
+ * - Network errors are treated as transient: requests back off and continue one at a time; the
+ *   finished room is shown as a still while nothing loads, and the animation resumes when it does.
  */
 
 interface TierInfo {
@@ -40,18 +42,24 @@ class FrameSource {
   private bitmaps = new Map<number, ImageBitmap>();
   private decoding = new Set<number>();
   private inflight = 0;
-  private failures = 0;
+  private tries: Uint8Array; // failed attempts per frame
+  private streak = 0; // consecutive failed requests
+  private failingSince = 0;
+  private holdUntil = 0; // after a failure, no new request before this time
+  private holdTimer = 0;
   private coarse: Set<number>;
   private disposed = false;
   private aborter = new AbortController();
-  private stopped = false; // gave up after repeated failures
-  paused = false;
+  private isPaused = false;
+  private resumedAt = 0;
   /** Until the visitor engages, only the coarse pass is fetched. */
   coarseOnly = true;
   current = 0;
   direction = 1;
   onDecoded: () => void = () => {};
+  /** Nothing has loaded for a while (offline, blocked); onRecover once frames load again. */
   onFatal: () => void = () => {};
+  onRecover: () => void = () => {};
   /** Called once with the measured throughput (bytes/ms) of the first fetches. */
   onSpeed: (bytesPerMs: number) => void = () => {};
   private speed = { n: 0, bytes: 0, start: Infinity, end: 0 };
@@ -65,10 +73,21 @@ class FrameSource {
   ) {
     this.blobs = new Array(tier.count).fill(null);
     this.state = new Uint8Array(tier.count);
+    this.tries = new Uint8Array(tier.count);
     const stride = Math.max(1, Math.round(tier.count / 12));
     this.coarse = new Set<number>();
     for (let k = 0; k < tier.count; k += stride) this.coarse.add(k);
     this.coarse.add(tier.count - 1);
+  }
+
+  get paused() {
+    return this.isPaused;
+  }
+
+  set paused(v: boolean) {
+    // time spent paused is not transfer time: restart the throughput sample on resume
+    if (this.isPaused && !v) this.restartSpeed();
+    this.isPaused = v;
   }
 
   url(k: number) {
@@ -106,14 +125,32 @@ class FrameSource {
   }
 
   pump() {
-    while (!this.paused && !this.stopped && this.inflight < this.concurrency) {
+    if (this.paused || this.disposed) return;
+    const wait = this.holdUntil - performance.now();
+    if (wait > 0) {
+      if (!this.holdTimer)
+        this.holdTimer = window.setTimeout(() => {
+          this.holdTimer = 0;
+          this.pump();
+        }, wait);
+      return;
+    }
+    // while requests are failing, probe one at a time
+    const limit = this.streak ? 1 : this.concurrency;
+    while (this.inflight < limit) {
       const k = this.next();
       if (k < 0) return;
       this.load(k);
     }
   }
 
-  private async load(k: number, retry = true) {
+  /** Back online (browser event): probe again now instead of waiting out the back-off. */
+  retryNow() {
+    this.holdUntil = 0;
+    this.pump();
+  }
+
+  private async load(k: number) {
     this.state[k] = 1;
     this.inflight++;
     try {
@@ -125,6 +162,15 @@ class FrameSource {
       this.measureSpeed(blob.size, t0, performance.now());
       this.blobs[k] = blob;
       this.state[k] = 2;
+      if (this.streak) {
+        // the connection is back: frames given up on during the outage are fetched again
+        this.streak = 0;
+        this.state.forEach((st, i) => {
+          if (st === 3) this.state[i] = 0;
+        });
+        this.tries.fill(0);
+        this.onRecover();
+      }
       this.trimBlobs();
       this.ensureDecoded(this.direction);
     } catch (err) {
@@ -133,17 +179,15 @@ class FrameSource {
         this.state[k] = 0; // cancelled (page hidden / left), fetched again when needed
         return;
       }
-      if (retry) {
-        // one retry after a pause; the frame stays marked as loading meanwhile, so pump()
-        // doesn't fetch it again in a tight loop while the network is down
-        setTimeout(() => !this.disposed && this.load(k, false), 1200);
-      } else {
-        this.state[k] = 3;
-        if (++this.failures > 8) {
-          this.stopped = true;
-          this.onFatal();
-        }
-      }
+      // Usually a dropped connection: wait before the next request, doubling the pause while
+      // nothing loads (1, 1, 2, 4, 8 s …). A frame that keeps failing is skipped for now.
+      const now = performance.now();
+      if (!this.streak) this.failingSince = now;
+      this.streak++;
+      this.state[k] = ++this.tries[k] >= 3 ? 3 : 0;
+      this.holdUntil = now + clamp(now - this.failingSince, 1000, 8000);
+      this.restartSpeed();
+      if (this.streak >= 3 && now - this.failingSince >= 2000) this.onFatal();
     } finally {
       this.inflight--;
       this.pump();
@@ -153,12 +197,19 @@ class FrameSource {
   /** Throughput of the first 8 fetches (the coarse pass: back-to-back, several in parallel). */
   private measureSpeed(bytes: number, t0: number, t1: number) {
     const m = this.speed;
-    if (m.n >= 8) return;
+    if (m.n >= 8 || t0 < this.resumedAt) return;
     m.n++;
     m.bytes += bytes;
     m.start = Math.min(m.start, t0);
     m.end = Math.max(m.end, t1);
     if (m.n === 8) this.onSpeed(m.bytes / Math.max(1, m.end - m.start));
+  }
+
+  /** Discard an unfinished sample spanning a pause or a failure; only later requests count. */
+  private restartSpeed() {
+    if (this.speed.n >= 8) return;
+    this.speed = { n: 0, bytes: 0, start: Infinity, end: 0 };
+    this.resumedAt = performance.now();
   }
 
   /** Drop compressed frames far from the current position (re-fetched from HTTP cache if needed). */
@@ -262,8 +313,9 @@ class FrameSource {
 
   dispose() {
     this.abort();
+    clearTimeout(this.holdTimer);
     this.disposed = true;
-    this.paused = true;
+    this.isPaused = true;
     for (const b of this.bitmaps.values()) b.close();
     this.bitmaps.clear();
     this.blobs.fill(null);
@@ -354,6 +406,16 @@ export function initHero() {
     canvas.after(img);
   };
 
+  // Frames load again (the connection came back): back to the animation.
+  const hideFallback = () => {
+    if (!degraded) return;
+    degraded = false;
+    hero.classList.remove('is-degraded');
+    hero.querySelector('.hero__fallback')?.remove();
+    lastDrawKey = '';
+    request();
+  };
+
   const setSource = () => {
     const name = pickTier();
     if (source?.dir === name) return;
@@ -368,6 +430,7 @@ export function initHero() {
     source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12, isDesktop ? 72 : 84);
     source.onDecoded = () => request();
     source.onFatal = showFallback;
+    source.onRecover = hideFallback;
     // Below ~0.8 MB/s the full set can't keep up with normal scrolling: use the lighter one.
     source.onSpeed = (bytesPerMs) => {
       if (constrained || bytesPerMs >= 800) return;
@@ -395,6 +458,12 @@ export function initHero() {
   const measure = () => {
     top = hero.offsetTop;
     travel = Math.max(1, hero.offsetHeight - stage.offsetHeight);
+    sizeCanvas();
+  };
+
+  // Also run as soon as the stage changes size (resize, rotation), so the picture is never drawn
+  // stretched while the rest of the re-layout waits for the resize to settle.
+  const sizeCanvas = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = stage.clientWidth;
     const h = stage.clientHeight;
@@ -564,7 +633,8 @@ export function initHero() {
     if (!behind) behindSince = 0;
     else if (!behindSince) behindSince = time;
     hero.classList.toggle('is-catching-up', behind && time - behindSince > 250);
-    updateChrome(degraded ? fp : drawnFrac);
+    // the fallback shows the bare room until the visitor scrolls in, then the finished room
+    updateChrome(degraded ? (fp > 0 ? 1 : 0) : drawnFrac);
     if (shown !== target) request();
     else lastTime = 0;
     // arriving frames re-tick through onDecoded; this only turns the loading cue on in time
@@ -647,6 +717,9 @@ export function initHero() {
   };
   window.addEventListener('resize', onResize);
   portraitMq.addEventListener('change', onResize);
+  new ResizeObserver(() => {
+    if (started && !off) sizeCanvas();
+  }).observe(stage);
 
   const io = new IntersectionObserver(
     ([entry]) => {
@@ -669,6 +742,8 @@ export function initHero() {
       request();
     }
   });
+
+  window.addEventListener('online', () => source?.retryNow());
 
   window.addEventListener('pagehide', () => {
     source?.abort();
@@ -693,6 +768,11 @@ export function initHero() {
       source = null;
       retired = null;
       hero.classList.remove('is-ready', 'is-held-start', 'is-held-end', 'is-past-start', 'is-catching-up');
+      // back to the stylesheet's static hero (intro text visible, no progress fills)
+      hideFallback();
+      for (const el of [hero, ...ticks])
+        ['--intro', '--chrome', '--final', '--fill'].forEach((v) => el.style.removeProperty(v));
+      cache.clear();
       return;
     }
     if (!started) {

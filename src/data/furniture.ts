@@ -41,7 +41,7 @@ export interface ConfigProduct {
   id: 'bed' | 'armchair';
   formValue: FurnitureType;
   name: { hy: string; en: string };
-  /** preview images live in /media/config/<id>/<finish>-<width>.webp|avif */
+  /** preview images live in /media/config/<id>/<finish>-<width>.webp */
   width: number;
   height: number;
   widths: number[];

@@ -41,7 +41,7 @@ src/
   data/furniture.ts     furniture categories + colour-configurator products/finishes
   data/images.json      generated image manifest (sizes for CLS-free responsive images)
   data/hero.json        generated hero manifest (frame sets, stage boundaries, poster widths)
-  i18n/hy.ts, en.ts     all copy, labels, errors, SEO text (en is type-checked against hy)
+  i18n/hy.ts, en.ts     all copy, labels, errors, SEO text (en is type-checked against hy in the build)
   components/           Header, Hero, Services, About, Furniture, Configurator, Process,
                         Craft, Projects, Inquiry, Contact, Footer, Picture, Icon, Logo
   scripts/hero.ts       scroll-controlled frame sequence (canvas)
@@ -79,21 +79,27 @@ headboard, bedside tables & bench → bedding, art & finishing touches.
   evenly spaced frames. The stage name and progress always describe the frame on screen; while it lags
   the scroll position, the progress bar breathes. Compressed and decoded frames are both capped
   (desktop 72/16, phones 84/12), so memory stays bounded. Fetching pauses off-screen and in background
-  tabs; failed frames are retried once, after 1.2 s; requests are cancelled when the page is left.
+  tabs, and requests are cancelled when the page is left. A failed request is treated as a dropped
+  connection: requests continue one at a time with growing pauses (1, 1, 2, 4, 8 s), and at once when
+  the browser reports it is back online.
 - Adaptation: Save-Data, 2G/3G, a browser-reported downlink < 2 Mbit/s, ≤ 2 GB RAM or ≤ 2 CPU cores
-  start on the lighter set; a throughput below ~0.8 MB/s measured on the first frames, or scrubbing
+  start on the lighter set; a throughput below ~0.8 MB/s measured on the first frames (time spent
+  paused off-screen or after a failure doesn't count), or scrubbing
   slower than ~40 fps (p95 frame time > 24 ms), switches once to the lighter set, keeping the current
   position and the picture on screen.
 - *Reduced motion*: the finished room as a still image, no pinned scrolling (also when the setting is
-  changed while the page is open). If the frames can't be loaded at all, the finished room is shown as
-  one still image once the visitor scrolls in.
+  changed while the page is open). If no frame loads for about 2 s (offline, blocked), the finished room
+  is shown as one still image once the visitor scrolls in, with the stage indicator on the last stage;
+  the animation comes back as soon as frames load again.
 - Repairs after generation (`scripts/media/repair_hero_clips.py`; the camera is locked, so a defect in
   a region no furniture moves through is replaced by a clean, exposure-matched plate of the same room;
   the untouched generations are kept in `media-src/hero/generated/`):
   - phones, stage 4: Kling lowered the mattress through a hatch opening in the ceiling and opened the
-    finished wardrobe to slide a headboard panel out of it. The ceiling and the closed wardrobe are
-    kept until the mattress is just above the headboard; the panel appears from behind the wardrobe;
-  - phones, stage 5: a smoke-like stain on the headboard is removed;
+    finished wardrobe to slide a headboard panel out of it. The ceiling and the closed wardrobe (around
+    the bedside table sliding in front of it) are kept until the mattress is just above the headboard,
+    then hand back to the generated frames together, so the wardrobe has no seam; its handles change
+    style in one frame; the panel appears from behind the wardrobe;
+  - phones, stage 5: a smoke-like stain on the headboard is removed until the duvet covers that area;
   - desktop, stages 1–3: the curtains drifted into a crinkled texture and snapped back at stage 4; they
     now keep clean folds, turning gradually into those of stage 4.
 
@@ -138,8 +144,10 @@ cached for a year.
 ```bash
 npm ci
 npm run dev          # http://localhost:4321/hy/
-npm run build        # production build into dist/
-npm run check:links  # verifies every referenced asset/anchor/hreflang in dist/
+npm run build        # type-check (tsc) + production build into dist/
+npm run check:types  # type-check only: e.g. a key missing from en.ts fails here and in the build
+npm run check:links  # checks dist/: referenced assets (HTML and CSS), anchors, hreflang/canonical,
+                     # hero frames and stills, every colour-preview image
 npm run preview
 ```
 
@@ -176,19 +184,24 @@ field data (LCP/CLS/INP from real visitors) — check these after the first depl
 - **Hero motion.** Kling animates the movement between the keyframes, and some pieces do not arrive
   as installed parts: they grow, change shape or fade for a few frames (frame numbers of the 180-frame
   sequence; one frame is about 14 px of scrolling on a 1440×900 screen):
-  - desktop, stage 2 (≈ 40–56): the wardrobe side panels rise out of the floor and bend slightly
-    before standing;
+  - desktop, stage 2 (≈ 40–62): the wardrobe side panels rise out of the floor and bend before
+    standing, and shelves appear between them before the carcass is complete;
   - desktop, stage 3 (≈ 73–80): the bed base first shows as a faint outline and grows out of the rug;
     door fronts and a shelf appear out of the wardrobe carcass;
-  - desktop, stage 4 (≈ 114–125, 133–135): the headboard changes shape several times before it
-    settles, the bedside tables change shape for about three frames, the bench appears within two;
-  - desktop, stage 5, and phones, end of stage 4: the wall art fades in rather than being hung;
+  - desktop, stage 4 (≈ 114–135): the headboard changes shape several times before it settles, the
+    bedside tables change shape for about three frames (≈ 124–128), the bench appears within two;
+  - desktop, stage 5: the wall art fades in rather than being hung (≈ 147–150), the vase grows on the
+    bedside table and the pillows rise out of the mattress (≈ 163–170);
   - phones, stage 2 (≈ 38–51): a wardrobe panel tilts up from the floor with a dark outline;
-  - phones, stage 3 (≈ 75–77): the bed base shows as a faint outline before its rails appear;
-  - phones, stage 4: the bench is carried in from the foreground, and the mattress appears from just
-    above the headboard within about one frame of scrolling;
-  - phones, stage 5 (≈ 146–158): the duvet rises from behind the headboard and the throw forms from
-    soft shapes on the bed.
+  - phones, stage 3 (≈ 75–85): the bed base shows as a faint outline before its rails appear; a
+    wardrobe door briefly appears on the back wall over the pendant lamp, whose cord and globe fade out
+    and come back;
+  - phones, stage 4 (≈ 111–134): the headboard panels slide out from behind the closed wardrobe, the
+    bedside tables and the bench are carried in from the foreground, the mattress appears from just
+    above the headboard within about one frame, and the wall art fades in at the end;
+  - phones, stage 5: the duvet rises from behind the headboard and the throw forms from soft shapes on
+    the bed (≈ 146–160); the vase grows on the bedside table and the pillows rise out of the mattress
+    (≈ 167–178).
 
   Clean versions need new Higgsfield generations with more intermediate keyframes (carcass standing,
   doors hung, base placed, headboard placed): roughly 40–60 credits. The account used has 0.22 credits

@@ -161,6 +161,7 @@ export function initInquiry() {
     // After a failed submit, clear errors while the visitor types (never on blur, so the
     // layout can't shift under a pointer that is about to press the submit button).
     if (attempted && (e.target as HTMLElement).getAttribute('aria-invalid') === 'true') validate(true);
+    refreshSummary();
   });
   form.addEventListener('change', (e) => {
     const t = e.target as HTMLInputElement;
@@ -168,6 +169,7 @@ export function initInquiry() {
     syncDependent();
     saveDraft();
     if (attempted && (t.tagName === 'SELECT' || t.type === 'radio')) validate(true);
+    refreshSummary();
   });
 
   /* ---------- prefill from CTAs and the colour configurator ---------- */
@@ -182,7 +184,8 @@ export function initInquiry() {
       const c0 = detail.config;
       setConfig(c0?.label ?? '', c0 ? { product: c0.product, finish: c0.finish, other: c0.other } : null);
       const c = detail.config?.colorText ?? '';
-      if (c && (!colorInput.value || colorInput.value === colorFromConfig)) {
+      // an auto-filled colour follows the selection, also to "Other colour" without a name
+      if (c0 && (!colorInput.value || colorInput.value === colorFromConfig)) {
         colorInput.value = c;
         colorFromConfig = c;
       }
@@ -257,7 +260,12 @@ export function initInquiry() {
       errorSummary.hidden = !invalid.length;
       errorSummary.textContent = invalid.length ? text.errors.summary : '';
     }
-    if (invalid.length && !quiet) invalid[0].focus();
+    if (invalid.length && !quiet) {
+      // centre the field ourselves: Safari scrolls a focused field flush under the fixed header,
+      // hiding its label
+      (invalid[0].closest('.field, .form__group') ?? invalid[0]).scrollIntoView({ block: 'center' });
+      invalid[0].focus({ preventScroll: true });
+    }
     return invalid.length === 0;
   };
 
@@ -292,6 +300,11 @@ export function initInquiry() {
     success.hidden = true;
     fallback.hidden = true;
     form.hidden = false;
+  };
+
+  // The form stays editable under the fallback: what gets copied follows later corrections.
+  const refreshSummary = () => {
+    if (!fallback.hidden) summaryBox.value = buildSummary();
   };
 
   const showFallback = (summary: string) => {
