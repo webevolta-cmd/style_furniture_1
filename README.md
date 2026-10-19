@@ -120,7 +120,13 @@ node scripts/media/build-images.mjs config         # colour previews only
 # Python 3 + opencv-python-headless + numpy:
 python3 scripts/media/recolor_variants.py          # colour variants from media-src/config/raw/
 python3 scripts/media/repair_hero_clips.py         # hero clip repairs, generated/ → hero/ (needs ffmpeg)
+# Python 3 + Pillow + numpy (keyframe work only; usage in the script's docstring):
+python3 scripts/media/colormatch.py …              # matches a keyframe's colour to the finished room
 ```
+
+JPEG and WebP outputs are reproduced byte for byte with the locked `sharp` 0.35.5. AVIF files made
+before the update from 0.34.5 come out visually the same but not byte-identical (newer AVIF encoder),
+so they were left as committed.
 
 Fonts and media keep stable file names, so `netlify.toml` caches them with revalidation
 (`/media/*` 1 day, `/fonts/*` 7 days, then refreshed in the background) rather than as immutable;
@@ -190,7 +196,8 @@ field data (LCP/CLS/INP from real visitors) — check these after the first depl
 - **Resolution:** the phone stages 4–5 were generated at 720p, so all phone frames are 720×1280
   (sharper 1080×1920 stills are shown when the visitor stops at the start and the end). Some photos
   are limited by their sources: the bed colour preview (1200 px), kitchen crops (from a 1536 px photo)
-  and Instagram crops (1080 px posts).
+  and Instagram crops (1080 px posts; the fabric-samples image comes from a 405×720 cover, so it is
+  slightly upscaled on high-DPI screens).
 
 ## Content notes
 
