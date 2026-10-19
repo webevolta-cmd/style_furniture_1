@@ -3,7 +3,6 @@ import en from './en';
 
 export type Lang = 'hy' | 'en';
 export const langs: Lang[] = ['hy', 'en'];
-export const defaultLang: Lang = 'hy';
 
 const dicts: Record<Lang, Dict> = { hy, en };
 

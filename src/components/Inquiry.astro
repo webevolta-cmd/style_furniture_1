@@ -13,10 +13,11 @@ const requestTypes = ['consultation', 'measurement', 'quote', 'custom'] as const
 // only channels the business publishes: its phone number (orders) and Instagram Direct
 const methods = ['call', 'instagram'] as const;
 
-// Strings the client script needs (validation, summary, fallback)
+// Strings the client script needs (validation, summary, fallback). The summary is copied as plain
+// text, so its title drops the word joiner that keeps «Furniture-ին» together on screen.
 const clientText = {
   errors: f.errors,
-  summaryTitle: f.summaryTitle,
+  summaryTitle: f.summaryTitle.replace(/\u2060/g, ''),
   summary: f.summary,
   types: f.types,
   types2: f.types2,

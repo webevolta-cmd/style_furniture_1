@@ -54,15 +54,15 @@ export const configProducts: ConfigProduct[] = [
   {
     id: 'bed',
     formValue: 'bed',
-    name: { hy: 'Մահճակալ՝ շերտավոր գլխամասով', en: 'Bed with layered headboard' },
+    name: { hy: 'Շերտավոր գլխամասով մահճակալ', en: 'Bed with layered headboard' },
     width: 1200,
     height: 900,
     widths: [600, 900, 1200],
     defaultFinish: 'ivory',
     finishes: [
-      { id: 'ivory', swatch: '#e2d8ca', name: { hy: 'Փղոսկրա\u00ADգույն', en: 'Ivory' } },
+      { id: 'ivory', swatch: '#ccbaa9', name: { hy: 'Փղոսկրա\u00ADգույն', en: 'Ivory' } },
       { id: 'sand', swatch: '#b8977a', name: { hy: 'Ավազա\u00ADգույն', en: 'Sand' } },
-      { id: 'mocha', swatch: '#704c36', name: { hy: 'Սուրճա\u00ADգույն', en: 'Mocha' } },
+      { id: 'mocha', swatch: '#704c36', name: { hy: 'Սրճա\u00ADգույն', en: 'Mocha' } },
       { id: 'olive', swatch: '#746e52', name: { hy: 'Ձիթապտղա\u00ADգույն', en: 'Olive' } },
       { id: 'graphite', swatch: '#433c39', name: { hy: 'Գրաֆիտա\u00ADգույն', en: 'Graphite' } },
       { id: 'terracotta', swatch: '#894931', name: { hy: 'Աղյուսա\u00ADգույն', en: 'Terracotta' } },
@@ -76,7 +76,7 @@ export const configProducts: ConfigProduct[] = [
   {
     id: 'armchair',
     formValue: 'armchair',
-    name: { hy: 'Բազկաթոռ՝ կլոր թիկնակով', en: 'Armchair with a rounded back' },
+    name: { hy: 'Կլոր թիկնակով բազկաթոռ', en: 'Armchair with a rounded back' },
     width: 1276,
     height: 1594,
     widths: [480, 851, 1276],
@@ -87,7 +87,7 @@ export const configProducts: ConfigProduct[] = [
       { id: 'emerald', swatch: '#2f4a3d', name: { hy: 'Զմրուխտա\u00ADգույն', en: 'Emerald' } },
       { id: 'terracotta', swatch: '#824b38', name: { hy: 'Աղյուսա\u00ADգույն', en: 'Terracotta' } },
       { id: 'charcoal', swatch: '#4f4748', name: { hy: 'Ածխա\u00ADգույն', en: 'Charcoal' } },
-      { id: 'dustyblue', swatch: '#70767c', name: { hy: 'Փոշե\u00ADկապույտ', en: 'Dusty blue' } },
+      { id: 'dustyblue', swatch: '#70767c', name: { hy: 'Մոխրա\u00ADկապույտ', en: 'Dusty blue' } },
       { id: 'black', swatch: '#24211f', name: { hy: 'Սև', en: 'Black' } },
     ],
     alt: {
