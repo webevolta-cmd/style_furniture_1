@@ -82,12 +82,12 @@ export const configProducts: ConfigProduct[] = [
     widths: [480, 851, 1276],
     defaultFinish: 'taupe',
     finishes: [
-      { id: 'taupe', swatch: '#827160', name: { hy: 'Մոխրա\u00ADշագանակա\u00ADգույն', en: 'Taupe' } },
+      { id: 'taupe', swatch: '#8e7d6c', name: { hy: 'Մոխրա\u00ADշագանակա\u00ADգույն', en: 'Taupe' } },
       { id: 'ivory', swatch: '#d6c7b5', name: { hy: 'Փղոսկրա\u00ADգույն', en: 'Ivory' } },
-      { id: 'emerald', swatch: '#2f4a3d', name: { hy: 'Զմրուխտա\u00ADգույն', en: 'Emerald' } },
-      { id: 'terracotta', swatch: '#824b38', name: { hy: 'Աղյուսա\u00ADգույն', en: 'Terracotta' } },
-      { id: 'charcoal', swatch: '#4f4748', name: { hy: 'Ածխա\u00ADգույն', en: 'Charcoal' } },
-      { id: 'dustyblue', swatch: '#70767c', name: { hy: 'Մոխրա\u00ADկապույտ', en: 'Dusty blue' } },
+      { id: 'emerald', swatch: '#395547', name: { hy: 'Զմրուխտա\u00ADգույն', en: 'Emerald' } },
+      { id: 'terracotta', swatch: '#915641', name: { hy: 'Աղյուսա\u00ADգույն', en: 'Terracotta' } },
+      { id: 'charcoal', swatch: '#595151', name: { hy: 'Ածխա\u00ADգույն', en: 'Charcoal' } },
+      { id: 'dustyblue', swatch: '#7c848b', name: { hy: 'Մոխրա\u00ADկապույտ', en: 'Dusty blue' } },
       { id: 'black', swatch: '#24211f', name: { hy: 'Սև', en: 'Black' } },
     ],
     alt: {
