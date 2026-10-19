@@ -164,20 +164,25 @@ for form POSTs (form detection off).
 
 | Check | Result |
 | --- | --- |
-| End-to-end (Playwright) — Chromium 141, Firefox 142, WebKit 26 | All pass in all three engines: 14 colour swatches + "Other" for both products; configuration carried into the form; validation; honest fallback when not delivered; Netlify payload/success only on HTTP 200; language switch keeps section, colour, form draft and hero position; `/` redirect; reduced motion; keyboard; 404; mobile menu |
-| Hero acceptance — Chromium 141 | 44/44: keyboard, slow and rapid wheel with reversals, real touch drags and flings with direction changes, no autoplay, held start/end stills, headline always visible, release into the next section, skip link, resize, rotation, refresh, back navigation, media-failure fallback, no blank frames, phone layouts 360/390/740×360 |
-| Hero acceptance — Firefox 142 / WebKit 26 (desktop + phone profiles) | 42/42 in Firefox (refresh/back scroll restore not checked: Playwright's Firefox doesn't restore scroll even on a plain page); all checks pass in WebKit, which additionally logs a misleading "access control checks" message for frame requests cancelled by a reload |
+| End-to-end (Playwright) — Chromium 141, Firefox 142, WebKit 26 | 38/38 in each engine: 14 colour swatches + "Other" for both products; configuration carried into the form; validation; honest fallback when not delivered; Netlify payload/success only on HTTP 200; language switch keeps section, colour, form draft and hero position; `/` redirect; reduced motion; keyboard; 404; mobile menu |
+| Colour selector and form edge cases — all three engines | 16/16 in each: switching back to the colour on screen during a swap (also with a slow or failing preview); the "Other colour" backdrop after reload and language switch; "Other colour" without a name; the hand-off text following edits made after the fallback; the first invalid field shown with its label (1440 and 390 px), hy and en |
+| Hero acceptance — Chromium 141 / WebKit 26 / Firefox 142 | 43/43 / 43/43 / 41/41 — keyboard, slow and rapid wheel with reversals, real touch drags and flings, no autoplay, held start/end stills, headline always visible, release into the next section, skip link, resize, rotation, refresh, back navigation, media-failure fallback, no blank frames, phone layouts 360/390/740×360. Firefox skips the refresh/back scroll-restore check (Playwright's Firefox doesn't restore scroll even on a plain page); WebKit logs a misleading "access control checks" message for frame requests cancelled by a reload |
+| Hero runtime — Chromium / Firefox / WebKit | 16/16 / 15/15 / 15/15: only whole frames drawn; stage label follows the painted frame on a slow network, with a loading cue; slow 4G switches to the lighter set (Chromium only, CDP throttling); media failure shows one aligned still; reduced motion toggled live both ways; a 1.5 s network drop doesn't stop the animation and a 4.5 s one shows the still, then recovers; canvas never stretched during resize/rotation; leaving the hero during the first fetches keeps the full set; fallback stage indicator |
+| Touch targets and Armenian line breaks — all three engines | every header, contact and footer target ≥ 44×44 px at 320–1024 px and on landscape phones (hy & en); «Instagram-ի», «Pinterest-ի», «Direct-ով» … never break before the suffix at 320–420, 768 and 1280 px |
 | Accessibility (axe-core 4.10) | 0 violations — hy & en at 1280 px, hy at 390 px |
-| Lighthouse 12.8 mobile (Moto G Power emulation, simulated slow 4G: 150 ms RTT, 1.6 Mbps; 4× CPU) | hy: 97–98 · LCP 2.3–2.4 s (3 runs) · CLS 0 · TBT 0 ms — en: 99 · LCP 2.1 s · CLS 0 · TBT 0 ms |
-| Lighthouse 12.8 desktop | hy & en: 100 · LCP 0.4 s · CLS ≤ 0.001 · TBT 0 ms |
+| Lighthouse 12.8 mobile (Moto G Power emulation, simulated slow 4G: 150 ms RTT, 1.6 Mbps; 4× CPU) | hy: 95–98 · LCP 2.3–2.4 s (4 runs) · CLS 0 · TBT 0–180 ms — en: 99 · LCP 2.0 s (4 runs) · CLS 0 · TBT 0 ms |
+| Lighthouse 12.8 desktop | hy & en: 100 · LCP 0.4–0.6 s · CLS ≤ 0.001 · TBT 0 ms |
 | Lighthouse a11y / best practices / SEO | 100 / 100 / 100 (all runs) |
-| Interaction latency (Event Timing, same data as INP) | worst 88 ms on mobile with 4× CPU slowdown; 64 ms mobile; 32 ms desktop |
-| Hero scrubbing, first pass (frames loading as you scroll) / second pass | desktop 1440×900: 59.8 / 59.9 fps, p95 16.8 ms, all 180 frames shown · phone 390×844 @3×: 60.0 / 60.2 fps, p95 16.8 ms · phone with 4× CPU slowdown: switches to the lighter set, 45 / 57 fps, p95 33 ms |
-| Memory while scrubbing (renderer process RSS, 3 full forward + back passes) | desktop: 238 MB idle → peak 375 MB (+137 MB) · phone @3×: 221 MB → peak 292 MB (+71 MB), flat across passes · JS heap ≤ 4 MB · decoded frames never exceed the caps |
+| Interaction latency (Event Timing, same data as INP) | worst 80 ms on mobile with 4× CPU slowdown; 64 ms mobile; 48 ms desktop |
+| Hero scrubbing, first pass (frames loading as you scroll) / second pass | desktop 1440×900: 60.0 / 60.1 fps, p95 16.8 ms, all 180 frames shown, each fetched once · phone 390×844 @3×: 60.2 / 60.2 fps, p95 16.8 ms · phone with 4× CPU slowdown: switches to the lighter set, 51 / 58 fps, p95 33 ms |
+| Memory while scrubbing (renderer process RSS) | desktop: 229 MB idle → peak 346 MB (+117 MB), flat over 8 full forward + back passes (328–341 MB) · phone @3×: 226 MB → peak 285 MB (+59 MB) · JS heap ≤ 2 MB · decoded frames never exceed the caps |
 | Layout | no horizontal overflow at 24 widths from 320 to 1600 px (hy & en); also checked at 1920 and 2560; phone landscape 740×360 |
+| Build tooling | `tsc` passes (a key missing from `en.ts` fails the build); `check:links` fails on a removed font, colour preview, hero still, hreflang or canonical (mutation-tested) |
 
 Conditions: headless browsers on Linux with software rendering (no GPU), Playwright 1.56 builds of
-Chromium, Firefox and WebKit. Real phones with GPU compositing typically scroll the canvas more smoothly.
+Chromium, Firefox and WebKit; frame-rate, memory and Lighthouse figures are from Chromium. Headless
+Firefox paints at only ~20 fps here, so while scrubbing it moves to the lighter frame set as designed.
+Real phones with GPU compositing typically scroll the canvas more smoothly.
 **Not tested:** Safari on a real iPhone/iPad, Chrome on a real Android phone, any physical device, and
 field data (LCP/CLS/INP from real visitors) — check these after the first deploy (e.g. PageSpeed Insights).
 
