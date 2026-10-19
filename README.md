@@ -77,8 +77,9 @@ headboard, bedside tables & bench → bedding, art & finishing touches.
   visitor scrolls, only a window around the current position (36 ahead, 12 behind): the nearest frames
   first, then every 4th and every 2nd frame ahead, so a fast scroll on a slow connection still gets
   evenly spaced frames. The stage name and progress always describe the frame on screen; while it lags
-  the scroll position, the progress bar breathes. Compressed and decoded frames are both capped
-  (desktop 72/16, phones 84/12), so memory stays bounded. Fetching pauses off-screen and in background
+  the scroll position, the progress bar breathes. Fetched frames are kept compressed (at most the
+  whole set: 9.2 MB desktop, 8.2 MB phones) and only a few are decoded at a time (desktop 16, phones
+  12), so memory stays bounded and flat however often the visitor scrubs. Fetching pauses off-screen and in background
   tabs, and requests are cancelled when the page is left. A failed request is treated as a dropped
   connection: requests continue one at a time with growing pauses (1, 1, 2, 4, 8 s), and at once when
   the browser reports it is back online.

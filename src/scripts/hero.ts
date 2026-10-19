@@ -6,7 +6,8 @@
  *   reverses the sequence. No autoplay. Only whole frames are drawn (no blending).
  * - Bounded memory and bandwidth: a small coarse pass is fetched after load (so any position
  *   has a nearby frame); after the visitor starts scrolling, only a window of frames around
- *   the current position is fetched. Compressed blobs and decoded ImageBitmaps are both
+ *   the current position is fetched. Compressed frames are kept once fetched (the whole set is
+ *   under 10 MB, and fetching them again would only grow memory); decoded ImageBitmaps are
  *   LRU-capped. Work pauses when the hero is off-screen or the tab is hidden.
  * - The held bare room and the held finished room are shown as full-resolution stills.
  * - Slow connections (measured on the first fetches) and devices that cannot keep up while
@@ -69,7 +70,6 @@ class FrameSource {
     readonly tier: TierInfo,
     private readonly concurrency: number,
     private readonly maxBitmaps: number,
-    private readonly maxBlobs: number,
   ) {
     this.blobs = new Array(tier.count).fill(null);
     this.state = new Uint8Array(tier.count);
@@ -171,7 +171,6 @@ class FrameSource {
         this.tries.fill(0);
         this.onRecover();
       }
-      this.trimBlobs();
       this.ensureDecoded(this.direction);
     } catch (err) {
       if (this.disposed) return;
@@ -210,24 +209,6 @@ class FrameSource {
     if (this.speed.n >= 8) return;
     this.speed = { n: 0, bytes: 0, start: Infinity, end: 0 };
     this.resumedAt = performance.now();
-  }
-
-  /** Drop compressed frames far from the current position (re-fetched from HTTP cache if needed). */
-  private trimBlobs() {
-    let held = 0;
-    for (const b of this.blobs) if (b) held++;
-    if (held <= this.maxBlobs) return;
-    const c = this.current;
-    const order = this.blobs
-      .map((b, k) => (b && !this.coarse.has(k) && !this.bitmaps.has(k) ? k : -1))
-      .filter((k) => k >= 0)
-      .sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
-    for (const k of order) {
-      if (held <= this.maxBlobs) break;
-      this.blobs[k] = null;
-      this.state[k] = 0;
-      held--;
-    }
   }
 
   /** Decode a small window around the current frame (biased in the scroll direction). */
@@ -427,7 +408,7 @@ export function initHero() {
     }
     const tier = tiers[name];
     const isDesktop = name.startsWith('desktop');
-    source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12, isDesktop ? 72 : 84);
+    source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12);
     source.onDecoded = () => request();
     source.onFatal = showFallback;
     source.onRecover = hideFallback;
