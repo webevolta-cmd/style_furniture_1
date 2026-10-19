@@ -27,14 +27,14 @@
       "height": 1280,
       "step": 1,
       "count": 180,
-      "bytes": 8593472
+      "bytes": 8593510
     },
     "mobile-lite": {
       "width": 540,
       "height": 960,
       "step": 2,
       "count": 90,
-      "bytes": 2608818
+      "bytes": 2608256
     }
   },
   "posters": {

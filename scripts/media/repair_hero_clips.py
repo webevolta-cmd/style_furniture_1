@@ -5,11 +5,12 @@ through it can be replaced with a clean plate of the same room, exposure-matched
 
 - m_seg4 (phones, stage 4): Kling lowered the mattress through a hatch that opens in the ceiling
   (with a dark shadow on the ceiling), and opened the finished wardrobe's doors to slide a headboard
-  panel out of it. The area above the headboard and the wardrobe column keep the bare room of the
-  first frames until the mattress is just above the headboard; the panel appears from behind the
-  wardrobe's edge.
+  panel out of it. The area above the headboard and the wardrobe column (around the bedside table
+  in front of it) keep the bare room of the first frames until the mattress is just above the
+  headboard, then fade together into the original; the panel appears from behind the wardrobe's edge.
 - m_seg5 (phones, stage 5): a smoke-like stain spreads over the left of the headboard in its first
-  frames; that patch keeps the clean headboard of the first frame.
+  frames; that patch keeps the clean headboard of the first frame until the stain has gone, except
+  where the duvet slides into it.
 - d_seg1-3 (desktop, stages 1-3): the curtain fabric drifts from clean folds to a crinkled texture
   and snaps back at the start of stage 4. The curtain area takes its folds from the opening frame,
   turning gradually into those of stage 4, under each frame's own lighting.
@@ -89,18 +90,48 @@ def repair_m_seg4():
     n = len(frames)
     H, W = frames[0].shape[:2]
     plate = np.mean([f.astype(np.float32) for f in frames[:3]], axis=0)
-    # 1) above the headboard, full width: plate above y 492, original below y 526
+    # 1) above the headboard, full width: plate above y 492, original below y 526. The pendant lamp's
+    #    globe (centre 582,517) sits on that boundary while the mattress passes it (frames ~53-58),
+    #    so the whole globe stays on the plate instead of being cut in half
     y = np.arange(H, dtype=np.float32)
     s = np.clip((526 - y) / (526 - 492), 0, 1)
     upper = np.repeat((s * s * (3 - 2 * s))[:, None], W, axis=1)
-    # 2) the wardrobe column (left edge at x ~606) down to the floor line, and from frame ~32 down to
-    #    the top of the bedside table sliding in front of it (its rim, measured on the frames)
-    rim = {30: 830, 32: 790, 34: 785, 36: 762, 38: 752, 40: 740, 42: 727, 44: 718, 46: 708, 48: 700}
-    keys = sorted(rim)
+    globe = np.zeros((H, W), np.float32)
+    cv2.circle(globe, (582, 517), 18, 1.0, -1)
+    upper = np.maximum(upper, cv2.GaussianBlur(globe, (0, 0), 1.5))
+    # 2) the wardrobe column (left edge at x ~606) down to the floor line, minus the bedside table that
+    #    slides in front of it from frame ~28: top of its rim, left and right side (measured on the
+    #    frames; until ~53 it runs past the frame's edge). Right of the table, once it moves away,
+    #    the column keeps the wardrobe down to where it meets the floor
+    table = {28: (820, 701, 800), 30: (806, 687, 800), 32: (790, 668, 800), 34: (781, 656, 800),
+             36: (768, 647, 800), 38: (757, 636, 800), 40: (746, 629, 800), 42: (737, 620, 800),
+             44: (728, 614, 800), 46: (720, 607, 800), 48: (711, 601, 800), 50: (704, 596, 800),
+             52: (697, 591, 800), 54: (690, 586, 716), 56: (684, 581, 703), 58: (678, 577, 694),
+             60: (673, 573, 685), 62: (670, 570, 677), 64: (663, 566, 669), 66: (661, 565, 663),
+             68: (659, 563, 656), 70: (657, 561, 650)}
+    keys = sorted(table)
 
     def column(t):
-        bottom = np.interp(t, keys, [rim[k] for k in keys]) - 6
-        return soft_mask((H, W), [[(606, 0), (W, 0), (W, bottom), (606, bottom)]], 2.0)
+        m = np.zeros((H, W), np.float32)
+        m[:824, 606:] = 1.0
+        if t < keys[0]:
+            return cv2.GaussianBlur(m, (0, 0), 2.0)
+        top, left, right = (np.interp(t, keys, [table[k][i] for k in keys]) for i in range(3))
+        r = int(right) + 4
+        m[int(top) - 1:, int(left) - 4:r] = 0
+        if r < W:  # the wardrobe meets the floor along (606,732)-(718,844)
+            cv2.fillPoly(m, [np.array([(r, 732 + r - 606), (W, 732 + W - 606), (W, H), (r, H)], np.int32)], 0)
+        m = cv2.GaussianBlur(m, (0, 0), 2.0)
+        # the dark shadow the table casts on the wardrobe to its right stays, fading out over ~34 px
+        x = np.arange(W, dtype=np.float32)
+        shade = (x >= left) * (1 - ss(right, right + 34, x)) * ss(top - 12, top + 8, y[:, None])
+        return m * (1 - shade)
+
+    # the wardrobe's bar pulls (first frames) and knobs (from the end of the doors' opening)
+    handles = soft_mask((H, W), [[(628, 590), (653, 590), (653, 604), (628, 604)],
+                                 [(652, 580), (676, 580), (676, 599), (652, 599)],
+                                 [(680, 600), (706, 600), (706, 614), (680, 614)],
+                                 [(709, 598), (W, 598), (W, 612), (709, 612)]], 1.0)
 
     # exposure measured outside the lighting dip (frames 31-65) and interpolated across it
     upper_rows = np.zeros((H, W), bool)
@@ -113,10 +144,13 @@ def repair_m_seg4():
     def fixed():
         for t in range(1, n + 1):
             ft = frames[t - 1].astype(np.float32)
-            a_up = ss(5, 9, t) * (1 - ss(62, 70, t))  # ceiling hatch, mattress, shadow
-            a_wd = ss(6, 10, t) * (1 - ss(43, 48, t))  # wardrobe doors open (frames 13-42)
-            a = np.maximum(a_up * upper, a_wd * column(t))[..., None]
-            if a.max() > 0:
+            # ceiling hatch, mattress, shadow; wardrobe doors open (frames 13-42), then shaded by the
+            # mattress and the table (to ~64). One schedule for both, so the wardrobe has no seam
+            a_t = ss(5, 9, t) * (1 - ss(62, 70, t))
+            if a_t > 0:
+                a = a_t * np.maximum(upper, column(t))
+                # the handles change style from one frame to the next instead of cross-fading
+                a = (a * (1 - handles) + float(a_t >= 0.5) * handles)[..., None]
                 ft = ft * (1 - a) + plate * gains[t] * a
             yield ft
 
@@ -127,13 +161,25 @@ def repair_m_seg5():
     frames = read(os.path.join(HERO, 'generated/m_seg5.mp4'))
     H, W = frames[0].shape[:2]
     plate = frames[0].astype(np.float32)
-    # the stain covers the left of the headboard; later the duvet passes just to its right
-    early = soft_mask((H, W), [[(70, 488), (272, 488), (272, 642), (70, 642)]], 5.0)
-    late = soft_mask((H, W), [[(70, 488), (212, 488), (212, 620), (70, 620)]], 5.0)
+    # the stain covers the left of the headboard down to the bedside table and the mattress, and has
+    # gone by frame ~28
+    patch = soft_mask((H, W), [[(70, 488), (272, 488), (272, 642), (230, 642), (206, 662), (70, 662)]], 0)
+    # from frame ~19 the duvet slides into the patch from the right: its top-left corner (measured on
+    # the frames) and everything right of and below it keep the original frame
+    duvet = {18: (292, 595), 20: (265, 599), 22: (249, 603), 24: (236, 603), 26: (223, 606),
+             28: (212, 597), 30: (203, 588), 31: (198, 586)}
+    keys = sorted(duvet)
+
+    def mask(t):
+        x, y = (np.interp(t, keys, [duvet[k][i] for k in keys]) for i in range(2))
+        m = patch.copy()
+        m[int(y) - 8:, int(x) - 8:] = 0
+        return cv2.GaussianBlur(m, (0, 0), 5.0)
+
     # exposure from the surroundings of the patch
     ring = np.zeros((H, W), bool)
     ring[440:690, 40:330] = True
-    ring &= early < 0.01
+    ring &= cv2.GaussianBlur(patch, (0, 0), 5.0) < 0.01
 
     def fixed():
         for t, ft in enumerate(frames, start=1):
@@ -141,7 +187,7 @@ def repair_m_seg5():
             a_t = ss(1, 3, t) * (1 - ss(24, 31, t))
             if a_t > 0:
                 g = gain_of(ft, plate, ring)
-                a = (a_t * (early if t <= 16 else late))[..., None]
+                a = (a_t * mask(t))[..., None]
                 ft = ft * (1 - a) + plate * g * a
             yield ft
 
