@@ -2,7 +2,9 @@ import { defineConfig } from 'astro/config';
 
 // Netlify exposes the site's primary address as `URL` during builds, so canonical,
 // hreflang, Open Graph and sitemap URLs follow whatever domain the site is deployed on.
-const site = process.env.URL || 'https://style-furniture.netlify.app';
+// Builds outside Netlify (local checks) fall back to the dev server address, never to a
+// public domain the business doesn't own.
+const site = process.env.URL || 'http://localhost:4321';
 
 // Static, prerendered build. Netlify serves `dist/` directly (see netlify.toml).
 export default defineConfig({
