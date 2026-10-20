@@ -54,3 +54,9 @@
   for = "/media/*"
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+# Netlify has no type for .webmanifest and serves it as application/octet-stream
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"

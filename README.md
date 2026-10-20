@@ -109,8 +109,9 @@ headboard, bedside tables & bench → bedding, art & finishing touches.
 Two real products photographed by the business (layered-headboard bed, rounded clinic armchair).
 Higgsfield (Nano Banana 2) renders in `media-src/config/raw/` serve only as **colour references**:
 `scripts/media/recolor_variants.py` builds a soft upholstery matte from where the renders agree the
-fabric changed (product regions only, specks removed, seams filled, anti-aliased edges; the bench,
-bedding, vase stems and the far chair's cushion are cut out along traced outlines), learns each
+fabric changed (product regions only, specks removed, seams filled, anti-aliased edges; bedding, vase
+stems and the far chair's cushion are cut out along traced outlines, and the bench in front of the
+bed is traced and always takes the bed's finish), learns each
 finish as a lightness → colour curve, and applies it to the **original photo**. Texture, folds, seams,
 shading and everything outside the upholstery stay those of the real photograph — no generated
 texture, no stray dots. *Black* is derived from the darkest render. "Other colour" lets visitors

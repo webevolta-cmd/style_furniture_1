@@ -54,7 +54,7 @@ export const configProducts: ConfigProduct[] = [
   {
     id: 'bed',
     formValue: 'bed',
-    name: { hy: 'Շերտավոր գլխամասով մահճակալ', en: 'Bed with layered headboard' },
+    name: { hy: 'Մահճակալ և նստարան', en: 'Bed and bench' },
     width: 1200,
     height: 900,
     widths: [600, 900, 1200],
@@ -69,8 +69,8 @@ export const configProducts: ConfigProduct[] = [
       { id: 'black', swatch: '#262321', name: { hy: 'Սև', en: 'Black' } },
     ],
     alt: {
-      hy: 'Մահճակալ շերտավոր փափուկ գլխամասով՝ ընտրված գույնով',
-      en: 'Bed with a layered upholstered headboard in the selected color',
+      hy: 'Շերտավոր փափուկ գլխամասով մահճակալ և նստարան՝ ընտրված գույնով',
+      en: 'Bed with a layered upholstered headboard and a matching bench in the selected color',
     },
   },
   {

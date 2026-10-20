@@ -41,9 +41,8 @@ PRODUCTS = {
             [(0.17, 0.06), (0.86, 0.06), (0.86, 0.32), (0.17, 0.32)],
             [(0.15, 0.455), (0.885, 0.455), (0.885, 0.70), (0.15, 0.70)],
         ],
-        # never recolour (outlines traced on the photo, through the first pixels of the object): the duvet,
-        # throw and pillows below the headboard, and the bench (a separate product) with its rounded corners;
-        # the bed's plinth seen through the bench opening stays in the matte
+        # never recolour (outline traced on the photo, through the first pixels of the object): the duvet,
+        # throw and pillows below the headboard
         'exclude': [
             px([(180, 286), (290, 286), (296, 284), (300, 281), (304, 278), (308, 276), (312, 275), (316, 273),
                 (320, 272), (326, 271), (332, 270), (338, 269), (344, 266), (350, 264), (356, 261), (362, 260),
@@ -51,11 +50,17 @@ PRODUCTS = {
                 (912, 273), (918, 274), (924, 276), (930, 277), (936, 279), (942, 282), (946, 284), (950, 286),
                 (952, 279), (968, 280), (972, 272), (976, 273), (980, 269), (984, 262), (990, 263), (996, 265),
                 (1062, 265), (1062, 416), (180, 416)], 1200, 900),
+        ],
+        # the upholstered bench in front of the bed takes the bed's finish (traced outline with its rounded
+        # corners, its sides down to the dark wooden feet, the inner faces down to their shadow line; the
+        # opening between the sides shows the bed's plinth and the floor). The renders kept it ivory, so it
+        # is recoloured from the bed's curve and never used to learn it
+        'solid': [
             px([(337, 412), (337, 424), (332, 427), (328, 430), (325, 433), (323, 436), (319, 440), (315, 445),
                 (311, 450), (306, 455), (301, 460), (295, 466), (290, 472), (286, 478), (283, 484), (280, 490),
-                (278, 496), (277, 502), (276, 508), (274, 516), (274, 524), (273, 531), (272, 540), (270, 684),
-                (372, 684), (372, 520), (373, 517), (375, 515), (376, 514), (865, 514), (867, 516), (868, 518),
-                (868, 684), (960, 684), (957, 540), (956, 531), (956, 524), (955, 516), (954, 508), (953, 502),
+                (278, 496), (277, 502), (276, 508), (274, 516), (274, 524), (273, 531), (272, 540), (273, 667),
+                (337, 667), (373, 615), (372, 520), (373, 517), (375, 515), (376, 514), (865, 514), (867, 516),
+                (868, 518), (867, 607), (894, 667), (959, 667), (958, 540), (956, 531), (956, 524), (955, 516), (954, 508), (953, 502),
                 (951, 496), (949, 490), (946, 484), (943, 478), (938, 472), (933, 466), (927, 460), (922, 455),
                 (918, 450), (914, 445), (910, 440), (907, 436), (905, 433), (902, 430), (898, 427), (893, 424),
                 (893, 412)], 1200, 900),
@@ -91,6 +96,7 @@ PRODUCTS = {
                     px([(803, 383), (835, 382), (880, 381), (950, 382), (1012, 385), (1012, 387), (960, 392),
                         (900, 393), (865, 389), (835, 385), (812, 384), (803, 384)], 1276, 1594)],
         'detail': [],
+        'solid': [],
     },
 }
 
@@ -179,7 +185,13 @@ def build_matte(base, renders, cfg):
     # excluded objects stay out (also where they were small holes in the fabric), with a crisp traced edge
     excl = poly_mask(base.shape, cfg['exclude']).astype(np.float32) / 255
     alpha *= 1 - cv2.GaussianBlur(excl, (0, 0), 0.5)
-    return np.clip(alpha, 0, 1)
+    learn = np.clip(alpha, 0, 1)
+    # outlined pieces recoloured as a whole (their own crisp traced edge), not used to learn the colour
+    if cfg['solid']:
+        solid = cv2.GaussianBlur(poly_mask(base.shape, cfg['solid']).astype(np.float32) / 255, (0, 0), 0.5)
+        alpha = np.maximum(alpha, solid)
+        learn *= 1 - (solid > 0)
+    return np.clip(alpha, 0, 1), learn
 
 
 def learn_curve(lb, lr, inside):
@@ -196,6 +208,14 @@ def learn_curve(lb, lr, inside):
     ok = ~np.isnan(out[:, 0])
     for c in range(3):
         out[:, c] = np.interp(centers, centers[ok], out[ok, c])
+    # brighter than any fabric the curve was learned on (e.g. the sunlit top of the bed's bench): carry the
+    # lightness on with the curve's recent slope rather than flattening those highlights
+    top = centers[ok].max()
+    near = ok & (centers > top - 12)
+    if (centers > top).any() and near.sum() >= 2:
+        slope = np.clip(np.polyfit(centers[near], out[near, 0], 1)[0], 0.2, 1.2)
+        hi = centers > top
+        out[hi, 0] = np.minimum(100, out[centers == top, 0] + (centers[hi] - top) * slope)
         out[:, c] = np.convolve(np.pad(out[:, c], 3, mode='edge'), np.ones(7) / 7, mode='valid')
     out[:, 0] = np.maximum.accumulate(out[:, 0])
     return centers, out
@@ -222,10 +242,10 @@ def main():
             path = sorted(glob.glob(os.path.join(CFG, 'raw', f'{product}-{f}.*')))[0]
             r = cv2.resize(cv2.imread(path), (w, h), interpolation=cv2.INTER_AREA)
             renders[f] = align(base, r)
-        alpha = build_matte(base, list(renders.values()), cfg)
+        alpha, learn = build_matte(base, list(renders.values()), cfg)
         cv2.imwrite(os.path.join(CFG, f'{product}-mask.png'), (alpha * 255).astype(np.uint8))
         lb = to_lab(base)
-        inside = cv2.erode((alpha > 0.98).astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
+        inside = cv2.erode((learn > 0.98).astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
         centers, base_curve = learn_curve(lb, lb, inside)
         curves = {}
         for f, r in renders.items():
