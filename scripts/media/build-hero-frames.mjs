@@ -18,8 +18,9 @@ const TMP = join(ROOT, '.cache/hero-frames');
 const FRAMES = 180;
 const PER_STAGE = FRAMES / 5;
 const POSTERS_ONLY = process.argv[2] === 'posters';
-// poster widths; 860 serves the common 390–430 px phones at ~2x without jumping to 1080
-const POSTER_WIDTHS = { desktop: [960, 1600, 1920], mobile: [540, 720, 860, 1080] };
+// poster widths; phones top out at 860: sharper than the 720 px frames that take over, and a
+// 3x phone would otherwise fetch a 1080 px image on the critical path
+const POSTER_WIDTHS = { desktop: [960, 1600, 1920], mobile: [540, 720, 860] };
 
 const sets = {
   desktop: {
@@ -34,7 +35,7 @@ const sets = {
     segments: ['m_seg1', 'm_seg2', 'm_seg3', 'm_seg4', 'm_seg5'],
     keyframes: ['keyframes/mobile/k0.jpg', 'keyframes/mobile/k5.jpg'],
     tiers: [
-      { name: 'mobile', w: 720, h: 1280, step: 1, q: 66 },
+      { name: 'mobile', w: 720, h: 1280, step: 2, q: 66 },
       { name: 'mobile-lite', w: 540, h: 960, step: 2, q: 62 },
     ],
   },

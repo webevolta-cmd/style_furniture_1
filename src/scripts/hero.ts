@@ -37,6 +37,52 @@ const smooth = (a: number, b: number, v: number) => {
   return x * x * (3 - 2 * x);
 };
 
+/**
+ * Decodes in a worker where possible: Safari and Firefox decode createImageBitmap(blob) on the
+ * calling thread, which would stall scrolling for every new frame. Falls back to the main thread
+ * (worker blocked or unsupported).
+ */
+const decodeFrame = (() => {
+  let worker: Worker | null = null;
+  let broken = false;
+  let n = 0;
+  const pending = new Map<number, { blob: Blob; done: (b: ImageBitmap) => void; fail: () => void }>();
+  const onMain = (p: { blob: Blob; done: (b: ImageBitmap) => void; fail: () => void }) =>
+    createImageBitmap(p.blob).then(p.done, p.fail);
+  const giveUp = () => {
+    broken = true;
+    worker?.terminate();
+    worker = null;
+    pending.forEach(onMain);
+    pending.clear();
+  };
+  return (blob: Blob) =>
+    new Promise<ImageBitmap>((done, fail) => {
+      if (!worker && !broken) {
+        try {
+          worker = new Worker(new URL('./hero-decoder.ts', import.meta.url), { type: 'module' });
+          worker.onmessage = (e: MessageEvent<{ id: number; bmp?: ImageBitmap }>) => {
+            const p = pending.get(e.data.id);
+            if (!p) return;
+            pending.delete(e.data.id);
+            if (e.data.bmp) p.done(e.data.bmp);
+            else {
+              onMain(p);
+              giveUp(); // no createImageBitmap in workers here
+            }
+          };
+          worker.onerror = giveUp;
+        } catch {
+          broken = true;
+        }
+      }
+      if (!worker) return onMain({ blob, done, fail });
+      const id = ++n;
+      pending.set(id, { blob, done, fail });
+      worker.postMessage({ id, blob });
+    });
+})();
+
 class FrameSource {
   private blobs: (Blob | null)[];
   private state: Uint8Array; // 0 idle · 1 loading · 2 loaded · 3 failed
@@ -211,10 +257,10 @@ class FrameSource {
     this.resumedAt = performance.now();
   }
 
-  /** Decode a small window around the current frame (biased in the scroll direction). */
-  ensureDecoded(direction = 1) {
+  /** Decode a small window around the current frame (biased in the scroll direction, reaching
+   *  further ahead while the visitor scrolls fast). */
+  ensureDecoded(direction = 1, ahead = 5) {
     const c = Math.round(this.current);
-    const ahead = 5;
     const behind = 2;
     const lo = clamp(c - (direction >= 0 ? behind : ahead), 0, this.tier.count - 1);
     const hi = clamp(c + (direction >= 0 ? ahead : behind), 0, this.tier.count - 1);
@@ -246,7 +292,7 @@ class FrameSource {
   private decode(k: number) {
     if (this.disposed || this.bitmaps.has(k) || this.decoding.has(k) || !this.blobs[k]) return;
     this.decoding.add(k);
-    createImageBitmap(this.blobs[k]!)
+    decodeFrame(this.blobs[k]!)
       .then((bmp) => {
         this.decoding.delete(k);
         if (this.disposed) return bmp.close();
@@ -362,6 +408,9 @@ export function initHero() {
   let lastTime = 0;
   let visible = true;
   let lastDrawKey = '';
+  // Easing time constant: wheels scroll in ~100 px jumps that the easing spreads over intermediate
+  // frames; a finger already scrolls smoothly, so there the picture follows it almost directly.
+  let tau = 70;
 
   const pickTier = () => {
     if (portraitMq.matches) return constrained ? 'mobile-lite' : 'mobile';
@@ -408,7 +457,9 @@ export function initHero() {
     }
     const tier = tiers[name];
     const isDesktop = name.startsWith('desktop');
-    source = new FrameSource(name, tier, isDesktop ? 4 : 3, isDesktop ? 16 : 12);
+    // Six requests at a time keep a high-latency mobile link busy; the lighter sets are chosen for slow
+    // links, where fewer parallel requests let the nearest frame arrive first
+    source = new FrameSource(name, tier, name.endsWith('-lite') ? 3 : 6, isDesktop ? 16 : 12);
     source.onDecoded = () => request();
     source.onFatal = showFallback;
     source.onRecover = hideFallback;
@@ -595,13 +646,14 @@ export function initHero() {
     else {
       // Critically damped easing toward the scroll target: smooths coarse wheel steps,
       // settles quickly and exactly on the target when scrolling stops.
-      const k = 1 - Math.exp(-dt / 70);
+      const k = 1 - Math.exp(-dt / tau);
       shown += (target - shown) * k;
       if (Math.abs(target - shown) < 0.02) shown = target;
     }
     source.current = shown;
     source.direction = shown >= prev ? 1 : -1;
-    source.ensureDecoded(source.direction);
+    // frames per tick → decode up to 9 ahead (within the phones' cap of 12 decoded frames)
+    source.ensureDecoded(source.direction, Math.min(9, 5 + Math.round(Math.abs(shown - prev) * 2)));
     source.pump();
     const last = source.tier.count - 1;
     draw(shown, clamp(shown / Math.max(1, last)));
@@ -631,9 +683,9 @@ export function initHero() {
     if (!raf && visible && !off) raf = requestAnimationFrame(tick);
   }
 
-  // Frames must not compete with the critical path (poster image, fonts, CSS):
-  // the small coarse pass starts once the page has loaded and is idle; the windowed
-  // fetching starts when the visitor scrolls.
+  // Frames must not compete with the critical path (poster image, fonts, CSS): fetching starts
+  // once the page has loaded and is idle, with a small coarse pass (any position has a nearby
+  // frame), then the frames ahead of the current position, so the first flick finds them ready.
   let started = false;
   let engaged = false;
   const engage = () => {
@@ -649,9 +701,7 @@ export function initHero() {
     setSource();
     measure();
     readScroll();
-    // opened mid-hero (restored scroll position, back navigation): no scroll event may follow,
-    // so load the frames around this position straight away
-    if (progress > 0) engage();
+    engage();
     shown = -1;
     request();
   };
@@ -673,6 +723,8 @@ export function initHero() {
     request();
   };
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('touchstart', () => (tau = 25), { passive: true });
+  window.addEventListener('wheel', () => (tau = 70), { passive: true });
 
   // The hero's height follows the viewport, so after a rotation or window resize the same scrollY
   // would land on a different assembly state. Remember where the visitor was and return there.

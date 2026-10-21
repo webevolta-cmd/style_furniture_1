@@ -49,7 +49,7 @@ src/
   pages/[lang]/index.astro, index.astro (root fallback), 404.astro, sitemap.xml.ts, robots.txt.ts
 public/
   media/hero/           hero frames: desktop (180×1600×900), desktop-lite (90×1280×720),
-                        mobile (180×720×1280), mobile-lite (90×540×960) + start/end stills
+                        mobile (90×720×1280), mobile-lite (90×540×960) + start/end stills
   media/img/            responsive AVIF/WebP/JPEG photos   media/config/  colour-preview variants
   fonts/                self-hosted Cormorant Garamond, Manrope, Noto Serif/Sans Armenian (SIL OFL)
 media-src/              masters (not deployed): Higgsfield video segments, keyframes,
@@ -68,18 +68,25 @@ animated with **Kling 3.0 Omni (first/last frame, locked camera)** — 5 segment
 (16:9 desktop, 9:16 phones): MDF wall panels → wardrobe → wardrobe doors & bed base → mattress,
 headboard, bedside tables & bench → bedding, art & finishing touches.
 
-- 180 frames per set, **36 per stage**, so every stage ends exactly on its keyframe and desktop and
-  phones share the same stage boundaries. Scroll maps to whole frames, forward and backward, with no
+- 180 frames, **36 per stage**, so every stage ends exactly on its keyframe and desktop and phones
+  share the same stage boundaries; phones use every second frame (90, about 26 px of scrolling each:
+  half the data, the same motion). Scroll maps to whole frames, forward and backward, with no
   blending between frames; the first 5 % of the pinned scroll holds the bare room and the last 14 %
   holds the finished room, both shown as full-resolution stills (the keyframes themselves, which match
   the first and last frames, so the hand-over is instant). One gentle camera move: a 5 % pull-back.
-- Loading: a small coarse pass (every 15th frame) after the page has loaded and is idle; once the
-  visitor scrolls, only a window around the current position (36 ahead, 12 behind): the nearest frames
-  first, then every 4th and every 2nd frame ahead, so a fast scroll on a slow connection still gets
-  evenly spaced frames. The stage name and progress always describe the frame on screen; while it lags
-  the scroll position, the progress bar breathes. Fetched frames are kept compressed (at most the
-  whole set: 9.2 MB desktop, 8.2 MB phones) and only a few are decoded at a time (desktop 16, phones
-  12), so memory stays bounded and flat however often the visitor scrubs. Fetching pauses off-screen and in background
+- Loading: nothing before the page has loaded and is idle; then a small coarse pass (one frame in
+  twelve, so any position has a nearby frame) and the window ahead of the current position, so the
+  first flick finds its frames ready; as the visitor scrolls, the window follows (36 frames ahead,
+  12 behind): the nearest frames first, then every 4th and every 2nd frame ahead, so a fast scroll on
+  a slow connection still gets evenly spaced frames. Six requests run at a time (three on the
+  lighter sets), which keeps a high-latency mobile link busy. Frames are decoded in a worker thread
+  (Safari and Firefox would otherwise decode on the main thread and stall scrolling), further ahead
+  while the visitor scrolls fast. On touch the picture follows the finger almost directly; wheel
+  steps are eased over the frames in between. The stage name and progress always describe the
+  frame on screen; while it lags the scroll position, the progress bar breathes. Fetched frames are
+  kept compressed (at most the whole set: 9.2 MB desktop, 4.3 MB phones) and only a few are decoded at a
+  time (desktop 16, phones 12), so memory stays bounded and flat however often the visitor scrubs.
+  Fetching pauses off-screen and in background
   tabs, and requests are cancelled when the page is left. A failed request is treated as a dropped
   connection: requests continue one at a time with growing pauses (1, 1, 2, 4, 8 s), and at once when
   the browser reports it is back online.
@@ -215,7 +222,7 @@ field data (LCP/CLS/INP from real visitors) — check these after the first depl
   doors hung, base placed, headboard placed): roughly 40–60 credits. The account used has 0.22 credits
   left, so these were repaired where a clean plate could fix them and are disclosed here otherwise.
 - **Resolution:** the phone stages 4–5 were generated at 720p, so all phone frames are 720×1280
-  (sharper 1080×1920 stills are shown when the visitor stops at the start and the end). Some photos
+  (sharper 860×1529 stills are shown when the visitor stops at the start and the end). Some photos
   are limited by their sources: the bed colour preview (1200 px), kitchen crops (from a 1536 px photo)
   and Instagram crops (1080 px posts; the fabric-samples image comes from a 405×720 cover, so it is
   slightly upscaled on high-DPI screens).

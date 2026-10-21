@@ -25,9 +25,9 @@
     "mobile": {
       "width": 720,
       "height": 1280,
-      "step": 1,
-      "count": 180,
-      "bytes": 8593510
+      "step": 2,
+      "count": 90,
+      "bytes": 4295462
     },
     "mobile-lite": {
       "width": 540,
@@ -46,8 +46,7 @@
     "mobile": [
       540,
       720,
-      860,
-      1080
+      860
     ]
   }
 }
