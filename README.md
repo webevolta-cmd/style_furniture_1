@@ -125,6 +125,21 @@ texture, no stray dots. *Black* is derived from the darkest render. "Other colou
 request any colour; the selection (product, finish or custom colour) is carried into the inquiry form
 and relabelled if the visitor switches language.
 
+### Loading
+
+- First paint needs only the HTML (CSS inline), the self-hosted fonts (each page preloads the ones its
+  text uses; all `font-display: swap`) and the opening still (preloaded per orientation, at most
+  860 px wide on phones).
+  The page script is a single 10 KB module; the hero frames start only once the page has loaded and
+  is idle.
+- Sections below the hero (`content-visibility: auto`) are laid out only when they come near the
+  screen, so the first layout covers the header and the hero alone: on a phone with a 4× slower CPU
+  the longest startup task drops from ~210 ms to ~65 ms (Armenian text is costly to lay out). Once
+  the page is idle, `site.ts` lays each section out once, one per idle slot, so real heights are
+  known and in-page links land exactly in every browser (also Safari, which doesn't correct the
+  scroll position when content above changes size); a link followed before that, or a page opened
+  at a section, lays out the whole page first.
+
 ### Regenerating media (optional)
 
 ```bash

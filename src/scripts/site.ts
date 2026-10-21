@@ -179,9 +179,57 @@ function initLanguageSwitch() {
   }
 }
 
+/**
+ * Sections below the hero skip layout until they come near the screen (content-visibility in
+ * global.css). Once the page is idle, each is laid out once, one per idle slot, so its real height
+ * is remembered and in-page links land exactly (Safari doesn't correct the scroll position when
+ * content above changes size). A link followed before that lays out the whole page first.
+ */
+function initLazyLayout() {
+  const root = document.documentElement;
+  if (root.classList.contains('cv-off') || !CSS.supports('content-visibility', 'auto')) return;
+  const sections = [...document.querySelectorAll<HTMLElement>('main > section:not(.hero), .footer')];
+  document.addEventListener(
+    'click',
+    (e) => {
+      if ((e.target as HTMLElement).closest('a[href^="#"]')) root.classList.add('cv-off');
+    },
+    true,
+  );
+  const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+    .requestIdleCallback;
+  const idle = (cb: () => void) => (ric ? ric(cb, { timeout: 2000 }) : window.setTimeout(cb, 100));
+  let i = 0;
+  const next = () => {
+    if (root.classList.contains('cv-off') || i >= sections.length) return;
+    const el = sections[i++];
+    el.style.contentVisibility = 'visible';
+    // laid out in the next frame, which records its size; then it may skip again
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        el.style.contentVisibility = '';
+        idle(next);
+      }),
+    );
+  };
+  const start = () => idle(next);
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start, { once: true });
+  // heights change with the width: record them again after a resize or rotation
+  let timer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      i = 0;
+      start();
+    }, 500);
+  });
+}
+
 export function initSite() {
   initHeader();
   initReveal();
   initRequestLinks();
   initLanguageSwitch();
+  initLazyLayout();
 }

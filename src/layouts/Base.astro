@@ -45,9 +45,11 @@ const jsonLd = {
   })),
 };
 
+// Armenian text takes its spaces and digits from Manrope (first in the stack), so the Armenian page
+// preloads it too: arriving late, it would change the word spacing and rewrap the hero's buttons.
 const fontPreloads =
   lang === 'hy'
-    ? ['/fonts/noto-sans-armenian-wght.woff2', '/fonts/noto-serif-armenian-wght.woff2']
+    ? ['/fonts/noto-sans-armenian-wght.woff2', '/fonts/noto-serif-armenian-wght.woff2', '/fonts/manrope-latin-wght.woff2']
     : ['/fonts/manrope-latin-wght.woff2', '/fonts/cormorant-garamond-latin-wght.woff2'];
 ---
 
@@ -88,7 +90,11 @@ const fontPreloads =
     {fontPreloads.map((href) => <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />)}
     <slot name="head" />
 
-    <script is:inline>document.documentElement.classList.add('js');</script>
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      // opened at a section (link, language switch): lay the whole page out, so it lands exactly
+      if (location.hash) document.documentElement.classList.add('cv-off');
+    </script>
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>

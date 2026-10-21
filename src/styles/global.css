@@ -551,3 +551,16 @@ ol {
     transform: none;
   }
 }
+
+/* Sections below the hero are laid out only when they come near the screen, so the first layout
+   covers the header and the hero alone (Armenian text is costly to lay out on phones). site.ts lays
+   each out once when the page is idle, so real heights are known for in-page links. */
+.js main > section:not(.hero),
+.js .footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+.js.cv-off main > section,
+.js.cv-off .footer {
+  content-visibility: visible;
+}
